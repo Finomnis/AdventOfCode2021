@@ -1,3 +1,4 @@
-pub mod day01;
-
 mod helpers;
+
+// DAILY: Add new solvers here
+pub mod day01;
