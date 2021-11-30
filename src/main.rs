@@ -59,12 +59,12 @@ fn main() -> Result<()> {
     let input_file_path = opts.data;
     let mut data = Vec::new();
     File::open(&input_file_path)
-        .or_else(|err| {
-            Err(anyhow!(
+        .map_err(|err| {
+            anyhow!(
                 "Unable to open '{}': {}",
                 &input_file_path.into_os_string().into_string().unwrap(),
                 err
-            ))
+            )
         })?
         .read_to_end(&mut data)?;
 
