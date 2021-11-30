@@ -12,9 +12,9 @@ My solutions for the https://adventofcode.com/2021 challenge.
   cargo run --release -- <day> <task> <data-file>
   ```
   with:
-    - <day>: The day of the challenge, from 1 to 24
-    - <task>: The task on the day, either 1 or 2
-    - <data-file>: The path to a file containing the challenge input data
+    - `<day>`: The day of the challenge, from 1 to 24
+    - `<task>`: The task on the day, either 1 or 2
+    - `<data-file>`: The path to a file containing the challenge input data
 
   Alternatively, building and running can be split into two steps:
   ```
