@@ -28,3 +28,47 @@ To run tests for all existing solvers, run:
 ```
 cargo test --release
 ```
+
+## Development
+
+Recommended development environment:
+
+- VSCode
+- Plugin `rust-analyzer` (NOT the official `Rust` plugin)
+
+This enables syntax highlighting, auto-completion, in-line type hints,
+error highlighting and buttons to run specific tests only (directly at the tests).
+
+## Adding new solvers
+
+When a new challenge is released, perform the following steps:
+
+- Copy input data to `input_data`
+- Add a new solver as `src/solvers/dayXX.rs`
+- Add the solver to the compilation in `src/solvers/mod.rs`
+- Register the solver in the command line tool, in `src/main.rs`
+
+Then, populate the solver with:
+
+- The solver for the task, as `task1()` or `task2()`
+- Tests:
+  - The `aoc_tests` macro makes this trivially easy,
+    just write:
+    ```
+    crate::aoc_tests! {
+        task1: {
+            (
+                <test_name>,
+                <input_file>,
+                <expected_result>
+            )
+        },
+        task2: {
+            // For example:
+            (simple, "day01_simple.txt", "abcde")
+            (complex, "day01_complex.txt", "result")
+        }
+    }
+    ```
+  - Add the small test from challenge text right away
+  - Add the larger test with the real challenge input data once the answer was accepted on the website
