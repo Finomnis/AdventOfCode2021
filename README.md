@@ -1,4 +1,7 @@
 # AdventOfCode2021
+
+[![Build Status](https://img.shields.io/github/workflow/status/Finomnis/AdventOfCode2021/CI/main)](https://github.com/Finomnis/AdventOfCode2021/actions/workflows/ci.yml?query=branch%3Amain)
+
 My solutions for the https://adventofcode.com/2021 challenge.
 
 ## Build & run
