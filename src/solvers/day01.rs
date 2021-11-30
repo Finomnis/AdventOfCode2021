@@ -6,7 +6,7 @@ pub fn task2(_input_data_raw: &[u8]) -> String {
     String::from("")
 }
 
-crate::aoc_tests!(
+crate::aoc_tests! {
     task1: {
         (simple, "day01.txt", "AAA")
         (complex, "day01.txt", "AAA")
@@ -15,4 +15,4 @@ crate::aoc_tests!(
         (simple, "day01.txt", "")
         (complex, "day01.txt", "")
     }
-);
+}
