@@ -14,7 +14,7 @@ pub fn task2(input_data: &[u32]) -> usize {
     task1(
         &input_data
             .windows(3)
-            .map(|v| v.into_iter().sum())
+            .map(|v| v.iter().sum())
             .collect::<Vec<_>>(),
     )
 }
