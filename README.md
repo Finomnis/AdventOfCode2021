@@ -45,8 +45,7 @@ When a new challenge is released, perform the following steps:
 
 - Copy input data to `input_data`
 - Add a new solver as `src/solvers/dayXX.rs`
-- Add the solver to the compilation in `src/solvers/mod.rs`
-- Register the solver in the command line tool, in `src/main.rs`
+- Register the solver in `src/main.rs`
 
 Then, populate the solver with:
 

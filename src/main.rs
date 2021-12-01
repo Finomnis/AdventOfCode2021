@@ -2,46 +2,23 @@ use anyhow::{anyhow, Result};
 use clap::Parser;
 use std::{fs, path::PathBuf};
 
-use advent_of_code_2021::*;
-
-macro_rules! solvers {
-    ( $( ($day:ident, $task:ident) )* ) => {
-        fn run_solver(day: u8, task: u8, data: &str) -> Result<String> {
-            let day_str = format!("day{:0>2}", day);
-            let task_str = format!("task{}", task);
-
-            match (day_str.as_str(), task_str.as_str()) {
-                $(
-                    (stringify!($day), stringify!($task)) => {
-                        println!(
-                            "Running solver {}::{} ...",
-                            stringify!($day),
-                            stringify!($task)
-                        );
-                        Ok($day::$task(data))
-                    },
-                )*
-                _ => Err(anyhow!(
-                    "Unable to find solver for day {}, task {}!",
-                    day,
-                    task
-                ))
-            }
-        }
-    };
-}
+mod helpers;
 
 // DAILY: Add new solvers here
 solvers! {
-    (day01, task1)
-    (day01, task2)
+    (day01, task1, task2)
+}
+
+// DAILY: Add new reference solutions here
+reference_solutions! {
+    (day01, task1, task2)
 }
 
 /// This is a solver for Advent of Code 2021 tasks.
 #[derive(Parser)]
 #[clap()]
 pub struct Options {
-    /// The day of the challenge, can be 1-24
+    /// The day of the challenge, can be 1-25
     #[clap()]
     pub day: u8,
 
@@ -49,8 +26,13 @@ pub struct Options {
     #[clap()]
     pub task: u8,
 
+    /// The path to the challenge input data
     #[clap()]
     pub data: PathBuf,
+
+    /// Run the reference solution of mine
+    #[clap(short, long)]
+    pub reference: bool,
 }
 
 fn main() -> Result<()> {
@@ -65,7 +47,10 @@ fn main() -> Result<()> {
         )
     })?;
 
-    let result = run_solver(opts.day, opts.task, &data)?;
+    let result = match opts.reference {
+        true => run_reference_solutions(opts.day, opts.task, &data)?,
+        false => run_solver(opts.day, opts.task, &data)?,
+    };
 
     println!("─ Result: ──────────────────────────────────────");
     println!("{}", result);

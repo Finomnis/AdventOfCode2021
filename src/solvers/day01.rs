@@ -1,12 +1,18 @@
-pub fn task1(input_data: &str) -> String {
+pub fn parse_input(input_data: &str) -> Vec<u32> {
     input_data
         .lines()
-        .map(|el| el.parse().unwrap())
-        .fold((0, u32::MAX), |(sum, prev), elem| {
+        .map(str::parse)
+        .map(Result::unwrap)
+        .collect()
+}
+
+pub fn task1(input_data: &[u32]) -> u32 {
+    input_data
+        .iter()
+        .fold((0, u32::MAX), |(sum, prev), &elem| {
             (sum + if elem > prev { 1 } else { 0 }, elem)
         })
         .0
-        .to_string()
 }
 
 fn optional_add(a: Option<u32>, b: u32) -> Option<u32> {
@@ -29,13 +35,12 @@ fn check_increased(prev: Option<u32>, curr: Option<u32>, elem: u32) -> u32 {
     }
 }
 
-pub fn task2(input_data: &str) -> String {
+pub fn task2(input_data: &[u32]) -> u32 {
     input_data
-        .lines()
-        .map(|el| el.parse::<u32>().unwrap())
+        .iter()
         .fold(
             (0u32, None, None, None),
-            |(sum, group1, group2, group3), elem| {
+            |(sum, group1, group2, group3), &elem| {
                 println!("{:?} {:?}", optional_add(group2, elem), group3);
                 (
                     sum + check_increased(group3, group2, elem),
@@ -46,7 +51,6 @@ pub fn task2(input_data: &str) -> String {
             },
         )
         .0
-        .to_string()
 }
 
 crate::aoc_tests! {
