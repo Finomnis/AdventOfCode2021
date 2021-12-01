@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use std::{fs::File, io::Read, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use advent_of_code_2021::*;
 
 macro_rules! solvers {
     ( $( ($day:ident, $task:ident) )* ) => {
-        fn run_solver(day: u8, task: u8, data: &[u8]) -> Result<String> {
+        fn run_solver(day: u8, task: u8, data: &str) -> Result<String> {
             let day_str = format!("day{:0>2}", day);
             let task_str = format!("task{}", task);
 
@@ -57,16 +57,13 @@ fn main() -> Result<()> {
     let opts = Options::parse();
 
     let input_file_path = opts.data;
-    let mut data = Vec::new();
-    File::open(&input_file_path)
-        .map_err(|err| {
-            anyhow!(
-                "Unable to open '{}': {}",
-                &input_file_path.into_os_string().into_string().unwrap(),
-                err
-            )
-        })?
-        .read_to_end(&mut data)?;
+    let data = fs::read_to_string(&input_file_path).map_err(|err| {
+        anyhow!(
+            "Unable to open '{}': {}",
+            &input_file_path.into_os_string().into_string().unwrap(),
+            err
+        )
+    })?;
 
     let result = run_solver(opts.day, opts.task, &data)?;
 

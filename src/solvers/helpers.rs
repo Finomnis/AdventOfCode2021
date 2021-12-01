@@ -5,8 +5,7 @@ macro_rules! aoc_tests {
         #[cfg(test)]
         mod $suite {
             use std::path::PathBuf;
-            use std::fs::File;
-            use std::io::prelude::*;
+            use std::fs;
 
             $(
             #[test]
@@ -16,12 +15,7 @@ macro_rules! aoc_tests {
                     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                         .join("input_data")
                         .join(input_file_path);
-                    let mut data = Vec::new();
-                    File::open(path)
-                        .unwrap()
-                        .read_to_end(&mut data)
-                        .unwrap();
-                    data
+                    fs::read_to_string(path).unwrap()
                 };
 
                 let expected_result: &str = $expected_result;

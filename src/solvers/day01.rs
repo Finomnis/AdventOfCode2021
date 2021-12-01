@@ -1,8 +1,8 @@
-pub fn task1(_input_data_raw: &[u8]) -> String {
+pub fn task1(_input_data_raw: &str) -> String {
     String::from("AAA")
 }
 
-pub fn task2(_input_data_raw: &[u8]) -> String {
+pub fn task2(_input_data_raw: &str) -> String {
     String::from("")
 }
 
