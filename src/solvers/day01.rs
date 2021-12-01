@@ -10,11 +10,7 @@ pub fn task1(input_data: &str) -> String {
 }
 
 fn optional_add(a: Option<u32>, b: u32) -> Option<u32> {
-    if let Some(prev) = a {
-        Some(prev + b)
-    } else {
-        None
-    }
+    a.map(|prev| prev + b)
 }
 
 fn check_increased(prev: Option<u32>, curr: Option<u32>, elem: u32) -> u32 {
