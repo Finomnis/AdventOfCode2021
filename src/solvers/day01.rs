@@ -14,16 +14,16 @@ fn optional_add(a: Option<u32>, b: u32) -> Option<u32> {
 }
 
 fn check_increased(prev: Option<u32>, curr: Option<u32>, elem: u32) -> u32 {
-    if let Some(prev_uwrapped) = prev {
-        if let Some(curr_unwrapped) = curr {
-            if curr_unwrapped + elem > prev_uwrapped {
-                1
-            } else {
-                0
-            }
+    let check = || {
+        if curr? + elem > prev? {
+            Some(())
         } else {
-            0
+            None
         }
+    };
+
+    if check().is_some() {
+        1
     } else {
         0
     }
