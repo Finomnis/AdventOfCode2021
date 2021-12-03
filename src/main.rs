@@ -8,6 +8,7 @@ mod helpers;
 solvers! {
     (day01, task1, task2)
     (day02, task1, task2)
+    (day03, task1, task2)
 }
 
 // DAILY: Add new reference solutions here

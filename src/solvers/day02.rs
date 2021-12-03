@@ -91,6 +91,7 @@ pub fn task1(input_data: &[DriveCommand]) -> i64 {
         });
     position.depth * position.horizontal
 }
+
 pub fn task2(input_data: &[DriveCommand]) -> i64 {
     let position = input_data
         .iter()
