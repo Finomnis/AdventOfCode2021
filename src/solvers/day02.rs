@@ -32,13 +32,13 @@ impl FromStr for DriveCommand {
         let mut args = s.split_whitespace();
         let direction = args
             .next()
-            .ok_or(ParseError::new("Not enough arguments in line"))?
+            .ok_or_else(|| ParseError::new("Not enough arguments in line"))?
             .parse()?;
         let distance = args
             .next()
-            .ok_or(ParseError::new("Not enough arguments in line"))?
+            .ok_or_else(|| ParseError::new("Not enough arguments in line"))?
             .parse()
-            .or(Err(ParseError::new("Unable to parse distance")))?;
+            .map_err(|_| ParseError::new("Unable to parse distance"))?;
         Ok(Self {
             direction,
             distance,

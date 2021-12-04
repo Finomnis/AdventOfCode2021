@@ -72,8 +72,8 @@ fn binary_to_number(binary: &[bool]) -> i64 {
 }
 
 pub fn task2(input_data: &[Vec<bool>]) -> i64 {
-    let mut result_oxy = input_data.iter().cloned().collect();
-    let mut result_co2 = input_data.iter().cloned().collect();
+    let mut result_oxy = input_data.to_vec();
+    let mut result_co2 = input_data.to_vec();
     for digit in 0..input_data[0].len() {
         result_oxy = filter_numbers(result_oxy, digit, true);
         result_co2 = filter_numbers(result_co2, digit, false);
