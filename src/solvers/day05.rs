@@ -82,7 +82,7 @@ impl fmt::Display for VentMap {
                 write!(f, "{}", data)?;
             }
             if index % self.width == self.width - 1 {
-                writeln!(f, "")?;
+                writeln!(f)?;
             }
         }
         Ok(())
@@ -150,7 +150,7 @@ impl VentMap {
     }
 }
 
-pub fn task1(input_data: &Vec<VentLine>) -> usize {
+pub fn task1(input_data: &[VentLine]) -> usize {
     let mut vent_map = VentMap::new_auto_bounds(input_data);
 
     for line in input_data {
@@ -162,7 +162,7 @@ pub fn task1(input_data: &Vec<VentLine>) -> usize {
     vent_map.data.iter().filter(|&&val| val > 1).count()
 }
 
-pub fn task2(input_data: &Vec<VentLine>) -> usize {
+pub fn task2(input_data: &[VentLine]) -> usize {
     let mut vent_map = VentMap::new_auto_bounds(input_data);
 
     for line in input_data {
@@ -195,10 +195,10 @@ pub mod render {
 
         image.save(&output_path).unwrap();
 
-        return output_path.into_os_string().into_string().unwrap();
+        output_path.into_os_string().into_string().unwrap()
     }
 
-    pub fn task1(input_data: &Vec<VentLine>) -> Vec<String> {
+    pub fn task1(input_data: &[VentLine]) -> Vec<String> {
         let mut vent_map = VentMap::new_auto_bounds(input_data);
 
         for line in input_data {
@@ -207,7 +207,7 @@ pub mod render {
 
         vec![write_to_image(&vent_map, "day05_task1.png")]
     }
-    pub fn task2(input_data: &Vec<VentLine>) -> Vec<String> {
+    pub fn task2(input_data: &[VentLine]) -> Vec<String> {
         let mut vent_map = VentMap::new_auto_bounds(input_data);
 
         for line in input_data {
