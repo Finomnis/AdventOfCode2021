@@ -18,6 +18,11 @@ reference_solutions! {
     (day01, task1, task2)
 }
 
+// DAILY: Add new renderers here
+renderers! {
+    (day05, task1, task2)
+}
+
 /// This is a solver for Advent of Code 2021 tasks.
 #[derive(Parser)]
 #[clap()]
@@ -37,6 +42,10 @@ pub struct Options {
     /// Run the reference solution of mine
     #[clap(short, long)]
     pub reference: bool,
+
+    /// Render the task visually, if available
+    #[clap(long)]
+    pub render: bool,
 }
 
 fn main() -> Result<()> {
@@ -50,6 +59,16 @@ fn main() -> Result<()> {
             err
         )
     })?;
+
+    if opts.render {
+        let artifacts = run_renderer(opts.day, opts.task, &data)?;
+        println!("─ Rendering artifacts: ─────────────────────────");
+        for artifact in artifacts {
+            println!("{}", artifact);
+        }
+        println!("────────────────────────────────────────────────");
+        return Ok(());
+    }
 
     let result = match opts.reference {
         true => run_reference_solutions(opts.day, opts.task, &data)?,

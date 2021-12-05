@@ -51,6 +51,7 @@ pub fn parse_input(input_data: &str) -> Vec<VentLine> {
 struct VentMap {
     data: Vec<i64>,
     width: usize,
+    height: usize,
 }
 
 impl VentMap {
@@ -58,7 +59,17 @@ impl VentMap {
         Self {
             data: vec![0; width * height],
             width,
+            height,
         }
+    }
+    pub fn new_auto_bounds(lines: &[VentLine]) -> Self {
+        let (width, height) = lines.iter().fold((0, 0), |(x, y), line| {
+            (
+                max(max(x, line.start.x + 1), line.end.x + 1),
+                max(max(y, line.start.y + 1), line.end.y + 1),
+            )
+        });
+        Self::new(width, height)
     }
 }
 
@@ -81,6 +92,10 @@ impl fmt::Display for VentMap {
 impl VentMap {
     fn get_mut(&mut self, x: usize, y: usize) -> &mut i64 {
         &mut self.data[self.width * y + x]
+    }
+
+    fn get(&self, x: usize, y: usize) -> i64 {
+        self.data[self.width * y + x]
     }
 
     fn render_straight_line(&mut self, line: &VentLine) {
@@ -136,14 +151,7 @@ impl VentMap {
 }
 
 pub fn task1(input_data: &Vec<VentLine>) -> usize {
-    let (width, height) = input_data.iter().fold((0, 0), |(x, y), line| {
-        (
-            max(max(x, line.start.x + 1), line.end.x + 1),
-            max(max(y, line.start.y + 1), line.end.y + 1),
-        )
-    });
-
-    let mut vent_map = VentMap::new(width, height);
+    let mut vent_map = VentMap::new_auto_bounds(input_data);
 
     for line in input_data {
         vent_map.render_straight_line(line);
@@ -155,14 +163,7 @@ pub fn task1(input_data: &Vec<VentLine>) -> usize {
 }
 
 pub fn task2(input_data: &Vec<VentLine>) -> usize {
-    let (width, height) = input_data.iter().fold((0, 0), |(x, y), line| {
-        (
-            max(max(x, line.start.x + 1), line.end.x + 1),
-            max(max(y, line.start.y + 1), line.end.y + 1),
-        )
-    });
-
-    let mut vent_map = VentMap::new(width, height);
+    let mut vent_map = VentMap::new_auto_bounds(input_data);
 
     for line in input_data {
         vent_map.render_line(line);
@@ -171,6 +172,50 @@ pub fn task2(input_data: &Vec<VentLine>) -> usize {
     //println!("VentMap: \n{}", vent_map);
 
     vent_map.data.iter().filter(|&&val| val > 1).count()
+}
+
+pub mod render {
+    use super::*;
+    use image::ImageBuffer;
+
+    fn write_to_image(vent_map: &VentMap, name: &str) -> String {
+        let image = ImageBuffer::from_fn(vent_map.width as u32, vent_map.height as u32, |x, y| {
+            let value = vent_map.get(x as usize, y as usize);
+            let luma = 255 - 50 * value;
+            if luma > 255 {
+                image::Luma([255u8])
+            } else if luma < 0 {
+                image::Luma([0u8])
+            } else {
+                image::Luma([luma as u8])
+            }
+        });
+
+        let output_path = std::env::current_dir().unwrap().join(name);
+
+        image.save(&output_path).unwrap();
+
+        return output_path.into_os_string().into_string().unwrap();
+    }
+
+    pub fn task1(input_data: &Vec<VentLine>) -> Vec<String> {
+        let mut vent_map = VentMap::new_auto_bounds(input_data);
+
+        for line in input_data {
+            vent_map.render_straight_line(line);
+        }
+
+        vec![write_to_image(&vent_map, "day05_task1.png")]
+    }
+    pub fn task2(input_data: &Vec<VentLine>) -> Vec<String> {
+        let mut vent_map = VentMap::new_auto_bounds(input_data);
+
+        for line in input_data {
+            vent_map.render_line(line);
+        }
+
+        vec![write_to_image(&vent_map, "day05_task2.png")]
+    }
 }
 
 crate::aoc_tests! {

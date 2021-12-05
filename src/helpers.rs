@@ -70,6 +70,35 @@ macro_rules! solvers {
 }
 
 #[macro_export]
+macro_rules! renderers {
+    ( $( ($day:ident, $($task:ident),* ) )* ) => {
+        fn run_renderer(day: u8, task: u8, data: &str) -> Result<Vec<String>> {
+            let day_str = format!("day{:0>2}", day);
+            let task_str = format!("task{}", task);
+
+            match (day_str.as_str(), task_str.as_str()) {
+                $($(
+                    (stringify!($day), stringify!($task)) => {
+                        println!(
+                            "Rendering {}::{} ...",
+                            stringify!($day),
+                            stringify!($task)
+                        );
+                        let input_data = solvers::$day::parse_input(data);
+                        Ok(solvers::$day::render::$task(&input_data))
+                    },
+                )*)*
+                _ => Err(anyhow!(
+                    "Unable to find renderer for day {}, task {}!",
+                    day,
+                    task
+                ))
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! reference_solutions {
     ( $( ($day:ident, $($task:ident),* ) )* ) => {
 
