@@ -11,6 +11,7 @@ solvers! {
     (day03, task1, task2)
     (day04, task1, task2)
     (day05, task1, task2)
+    (day06, task1, task2)
 }
 
 // DAILY: Add new reference solutions here
