@@ -83,7 +83,7 @@ impl SignalPattern {
         self.signals.len()
     }
 
-    fn to_digit(self) -> i64 {
+    fn to_digit(&self) -> i64 {
         match self.to_string().as_str() {
             "abcefg" => 0,
             "cf" => 1,
@@ -124,7 +124,7 @@ impl SignalMapping {
             signals: pattern
                 .signals
                 .iter()
-                .map(|s| self.forward.get(s).unwrap().clone())
+                .map(|s| *self.forward.get(s).unwrap())
                 .collect(),
         }
     }
@@ -174,10 +174,7 @@ pub fn task1(input_data: &[InputLine]) -> usize {
         .map(|line| {
             line.output_values
                 .iter()
-                .filter(|vals| match vals.len() {
-                    2 | 3 | 4 | 7 => true,
-                    _ => false,
-                })
+                .filter(|vals| matches!(vals.len(), 2 | 3 | 4 | 7))
                 .count()
         })
         .sum()
@@ -191,9 +188,7 @@ fn patterns_with_length_contain(
     patterns
         .iter()
         .filter(|pattern| pattern.len() == len)
-        .filter(|pattern| pattern.signals.contains(&signal))
-        .next()
-        .is_some()
+        .any(|pattern| pattern.signals.contains(&signal))
 }
 
 fn create_decoding(patterns: &[SignalPattern]) -> SignalMapping {
@@ -253,7 +248,7 @@ pub fn task2(input_data: &[InputLine]) -> i64 {
             line.output_values
                 .iter()
                 .map(|o| decoder.decode(o))
-                .map(SignalPattern::to_digit)
+                .map(|p| p.to_digit())
                 .fold(0, |res, digit| res * 10 + digit)
         })
         .sum()
