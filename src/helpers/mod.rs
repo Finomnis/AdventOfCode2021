@@ -35,16 +35,16 @@ macro_rules! aoc_tests {
 }
 
 #[macro_export]
-macro_rules! solvers {
+macro_rules! solutions {
     ( $( ($day:ident, $($task:ident),* ) )* ) => {
 
-        mod solvers{
+        mod solutions{
             $(
                 pub mod $day;
             )*
         }
 
-        fn run_solver(day: u8, task: u8, data: &str) -> Result<String> {
+        fn run_solution(day: u8, task: u8, data: &str) -> Result<String> {
             let day_str = format!("day{:0>2}", day);
             let task_str = format!("task{}", task);
 
@@ -56,8 +56,8 @@ macro_rules! solvers {
                             stringify!($day),
                             stringify!($task)
                         );
-                        let input_data = solvers::$day::parse_input(data);
-                        let solution = solvers::$day::$task(&input_data);
+                        let input_data = solutions::$day::parse_input(data);
+                        let solution = solutions::$day::$task(&input_data);
                         Ok(format!("{}", solution))
                     },
                 )*)*
@@ -86,8 +86,8 @@ macro_rules! renderers {
                             stringify!($day),
                             stringify!($task)
                         );
-                        let input_data = solvers::$day::parse_input(data);
-                        Ok(solvers::$day::render::$task(&input_data))
+                        let input_data = solutions::$day::parse_input(data);
+                        Ok(solutions::$day::render::$task(&input_data))
                     },
                 )*)*
                 _ => Err(anyhow!(
@@ -101,16 +101,16 @@ macro_rules! renderers {
 }
 
 #[macro_export]
-macro_rules! reference_solutions {
+macro_rules! reworked_solutions {
     ( $( ($day:ident, $($task:ident),* ) )* ) => {
 
-        mod reference_solutions {
+        mod reworked_solutions {
             $(
                 pub mod $day;
             )*
         }
 
-        fn run_reference_solutions(day: u8, task: u8, data: &str) -> Result<String> {
+        fn run_reworked_solutions(day: u8, task: u8, data: &str) -> Result<String> {
             let day_str = format!("day{:0>2}", day);
             let task_str = format!("task{}", task);
 
@@ -118,17 +118,17 @@ macro_rules! reference_solutions {
                 $($(
                     (stringify!($day), stringify!($task)) => {
                         println!(
-                            "Running reference solution {}::{} ...",
+                            "Running reworked solver {}::{} ...",
                             stringify!($day),
                             stringify!($task)
                         );
-                        let input_data = reference_solutions::$day::parse_input(data);
-                        let solution = reference_solutions::$day::$task(&input_data);
+                        let input_data = reworked_solutions::$day::parse_input(data);
+                        let solution = reworked_solutions::$day::$task(&input_data);
                         Ok(format!("{}", solution))
                     },
                 )*)*
                 _ => Err(anyhow!(
-                    "Unable to find reference solution for day {}, task {}!",
+                    "Unable to find reworked solver for day {}, task {}!",
                     day,
                     task
                 ))

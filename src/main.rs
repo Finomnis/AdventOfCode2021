@@ -4,8 +4,8 @@ use std::{fs, path::PathBuf};
 
 mod helpers;
 
-// DAILY: Add new solvers here
-solvers! {
+// DAILY: Add new solutions here
+solutions! {
     (day01, task1, task2)
     (day02, task1, task2)
     (day03, task1, task2)
@@ -17,7 +17,7 @@ solvers! {
 }
 
 // DAILY: Add new reference solutions here
-reference_solutions! {
+reworked_solutions! {
     (day01, task1, task2)
 }
 
@@ -42,9 +42,9 @@ pub struct Options {
     #[clap()]
     pub data: PathBuf,
 
-    /// Run the reference solution of mine
+    /// Run the reworked solution of mine
     #[clap(short, long)]
-    pub reference: bool,
+    pub reworked: bool,
 
     /// Render the task visually, if available
     #[clap(long)]
@@ -73,9 +73,9 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    let result = match opts.reference {
-        true => run_reference_solutions(opts.day, opts.task, &data)?,
-        false => run_solver(opts.day, opts.task, &data)?,
+    let result = match opts.reworked {
+        true => run_reworked_solutions(opts.day, opts.task, &data)?,
+        false => run_solution(opts.day, opts.task, &data)?,
     };
 
     println!("─ Result: ──────────────────────────────────────");

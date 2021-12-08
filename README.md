@@ -24,7 +24,7 @@ My solutions for the https://adventofcode.com/2021 challenge.
 
 ## Running tests
 
-To run tests for all existing solvers, run:
+To run tests for all existing solutions, run:
 ```
 cargo test --release
 ```
@@ -39,17 +39,17 @@ Recommended development environment:
 This enables syntax highlighting, auto-completion, in-line type hints,
 error highlighting and buttons to run specific tests only (directly at the tests).
 
-## Adding new solvers
+## Adding new solutions
 
 When a new challenge is released, perform the following steps:
 
 - Copy input data to `input_data`
-- Add a new solver as `src/solvers/dayXX.rs`
-- Register the solver in `src/main.rs`
+- Add a new solution as `src/solutions/dayXX.rs`
+- Register the solution in `src/main.rs`
 
-Then, populate the solver with:
+Then, populate the solution with:
 
-- The solver for the task, as `task1()` or `task2()`
+- The solution for the task, as `task1()` or `task2()`
 - Tests:
   - The `aoc_tests` macro makes this trivially easy,
     just write:
