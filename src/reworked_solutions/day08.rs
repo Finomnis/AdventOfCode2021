@@ -33,7 +33,7 @@ pub fn decode(input_line: &str) -> i64 {
 
     encoded
         .split_whitespace()
-        .map(|number| (number.chars().map(|ch| digits_histogram[&ch]).sum::<i64>()))
+        .map(|number| (number.chars().map(|ch| digits_histogram[&ch]).sum()))
         .map(|digit_identifier| match digit_identifier {
             42 => 0,
             17 => 1,
