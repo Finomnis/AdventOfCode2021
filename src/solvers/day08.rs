@@ -201,6 +201,7 @@ fn create_decoding(patterns: &[SignalPattern]) -> SignalMapping {
 
     let mut signal_mapping = SignalMapping::new();
 
+    // Count in how many digits the signals appear
     for pattern in patterns {
         for &digit in &pattern.signals {
             *signal_counter.entry(digit).or_insert(0usize) += 1;
