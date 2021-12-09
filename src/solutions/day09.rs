@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+use std::ops::Mul;
+
 use ndarray::Array2;
 
 use crate::helpers::input_parsing::{self, parse_as_2d_matrix};
@@ -72,16 +75,55 @@ pub fn is_minimum((height, width): (usize, usize), map: &Array2<i64>) -> bool {
     }
 }
 
-pub fn task2(input_data: &str) -> i64 {
+fn flood_fill(map: &Array2<i64>, basin: &mut HashSet<(usize, usize)>, index: (usize, usize)) {
+    if let Some(&field) = map.get(index) {
+        if field == 9 {
+            return;
+        }
+
+        if !basin.insert(index) {
+            return;
+        }
+
+        flood_fill(map, basin, (index.0 + 1, index.1));
+        flood_fill(map, basin, (index.0, index.1 + 1));
+
+        if index.0 > 0 {
+            flood_fill(map, basin, (index.0 - 1, index.1));
+        }
+        if index.1 > 0 {
+            flood_fill(map, basin, (index.0, index.1 - 1));
+        }
+    }
+}
+
+pub fn task2(input_data: &str) -> usize {
     let map = parse_as_2d_matrix::<i64>(input_data).unwrap();
+
+    //println!("{:?}", map);
+    let mut basins = vec![];
 
     for (index, _elem) in map.indexed_iter() {
         if is_minimum(index, &map) {
-            println!("min: {:?}", index);
+            // Perform flood fill
+            let mut basin = HashSet::new();
+
+            flood_fill(&map, &mut basin, index);
+
+            //println!("{:?} => {}: {:?}", index, basin.len(), basin);
+
+            basins.push((index, basin.len()));
         }
     }
 
-    0
+    basins.sort_by_key(|(_, area)| std::cmp::Reverse(*area));
+
+    basins
+        .iter()
+        .take(3)
+        .map(|(_, area)| *area)
+        .reduce(usize::mul)
+        .unwrap()
 }
 
 crate::aoc_tests! {
@@ -90,7 +132,7 @@ crate::aoc_tests! {
         (complex, "day09_complex.txt", "535")
     },
     task2: {
-        (simple, "day09_simple.txt", "")
-        (complex, "day09_complex.txt", "")
+        (simple, "day09_simple.txt", "1134")
+        (complex, "day09_complex.txt", "1122700")
     }
 }
