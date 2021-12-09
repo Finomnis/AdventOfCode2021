@@ -14,6 +14,7 @@ impl fmt::Display for ParseError {
     }
 }
 
+#[allow(dead_code)]
 pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
     input_data: &str,
     border_size: usize,
@@ -26,9 +27,13 @@ pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
             (std::cmp::min(width, row.trim().len()), height + 1)
         });
 
-    let mut matrix: Array2<Option<T>> = Array::from_elem((height + 2, width + 2), None);
+    let mut matrix: Array2<Option<T>> =
+        Array::from_elem((height + border_size * 2, width + border_size * 2), None);
 
-    let mut borderless = matrix.slice_mut(s![1..=height, 1..=width]);
+    let mut borderless = matrix.slice_mut(s![
+        border_size..height + border_size,
+        border_size..=width + border_size
+    ]);
 
     input_data
         .lines()
