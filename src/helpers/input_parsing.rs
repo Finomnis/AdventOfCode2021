@@ -48,7 +48,7 @@ pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
                     *out_el = Some(
                         in_el
                             .parse::<T>()
-                            .or(Err(ParseError(format!("Unable to parse '{}'!", in_el))))?,
+                            .map_err(|_| ParseError(format!("Unable to parse '{}'!", in_el)))?,
                     );
                     Ok(())
                 })
