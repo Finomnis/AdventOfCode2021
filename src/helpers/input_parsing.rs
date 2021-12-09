@@ -1,7 +1,7 @@
 use std::{error::Error, fmt};
 use std::{fmt::Debug, str::FromStr};
 
-use ndarray::{s, Array, Array2, Axis};
+use ndarray::{s, Array, Array2, ArrayView, Axis};
 
 #[derive(Debug)]
 pub struct ParseError(pub String);
@@ -14,6 +14,15 @@ impl fmt::Display for ParseError {
     }
 }
 
+fn get_2d_matrix_width_height(input_data: &str) -> (usize, usize) {
+    input_data
+        .trim()
+        .lines()
+        .fold((usize::MAX, 0usize), |(width, height), row| {
+            (std::cmp::min(width, row.trim().len()), height + 1)
+        })
+}
+
 #[allow(dead_code)]
 pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
     input_data: &str,
@@ -21,11 +30,7 @@ pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
 ) -> Result<Array2<Option<T>>, ParseError> {
     let input_data = input_data.trim();
 
-    let (width, height) = input_data
-        .lines()
-        .fold((usize::MAX, 0usize), |(width, height), row| {
-            (std::cmp::min(width, row.trim().len()), height + 1)
-        });
+    let (width, height) = get_2d_matrix_width_height(input_data);
 
     let mut matrix: Array2<Option<T>> =
         Array::from_elem((height + border_size * 2, width + border_size * 2), None);
@@ -55,4 +60,40 @@ pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
         })?;
 
     Ok(matrix)
+}
+
+#[allow(dead_code)]
+pub fn parse_as_2d_matrix<T: Clone + FromStr + Debug>(
+    input_data: &str,
+) -> Result<Array2<T>, ParseError> {
+    let input_data = input_data.trim();
+
+    let (width, _) = get_2d_matrix_width_height(input_data);
+
+    let parsed = input_data
+        .lines()
+        .map(|in_line| {
+            in_line
+                .trim()
+                .chars()
+                .map(|c| c.to_string())
+                .map(|in_el| {
+                    in_el
+                        .parse::<T>()
+                        .map_err(|_| ParseError(format!("Unable to parse '{}'!", in_el)))
+                })
+                .collect::<Result<Vec<_>, ParseError>>()
+        })
+        .collect::<Result<Vec<_>, ParseError>>()?;
+
+    let mut result = Array::from_shape_vec((0, width), vec![])
+        .map_err(|_| ParseError("Unable to construct matrix!".into()))?;
+
+    for line in parsed {
+        result
+            .push_row(ArrayView::from(&line))
+            .map_err(|e| ParseError(format!("Can't add row: {}", e)))?;
+    }
+
+    Ok(result)
 }
