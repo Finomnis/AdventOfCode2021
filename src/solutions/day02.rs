@@ -1,4 +1,4 @@
-use crate::helpers::ParseError;
+use crate::helpers::input_parsing::ParseError;
 use std::str::FromStr;
 
 pub enum Direction {
@@ -20,7 +20,7 @@ impl FromStr for Direction {
             "forward" => Ok(Self::Forward),
             "up" => Ok(Self::Up),
             "down" => Ok(Self::Down),
-            _ => Err(ParseError::new("Invalid direction")),
+            _ => Err(ParseError("Invalid direction".to_string())),
         }
     }
 }
@@ -32,13 +32,13 @@ impl FromStr for DriveCommand {
         let mut args = s.split_whitespace();
         let direction = args
             .next()
-            .ok_or_else(|| ParseError::new("Not enough arguments in line"))?
+            .ok_or_else(|| ParseError("Not enough arguments in line".to_string()))?
             .parse()?;
         let distance = args
             .next()
-            .ok_or_else(|| ParseError::new("Not enough arguments in line"))?
+            .ok_or_else(|| ParseError("Not enough arguments in line".to_string()))?
             .parse()
-            .map_err(|_| ParseError::new("Unable to parse distance"))?;
+            .map_err(|_| ParseError("Unable to parse distance".to_string()))?;
         Ok(Self {
             direction,
             distance,

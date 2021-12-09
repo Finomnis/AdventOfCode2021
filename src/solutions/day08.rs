@@ -6,7 +6,7 @@ use std::{
 
 use itertools::Itertools;
 
-use crate::helpers::ParseError;
+use crate::helpers::input_parsing::ParseError;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum SignalNumber {

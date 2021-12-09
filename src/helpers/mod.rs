@@ -1,6 +1,5 @@
 pub mod accu_iter;
-
-use std::{error::Error, fmt};
+pub mod input_parsing;
 
 #[macro_export]
 macro_rules! aoc_tests {
@@ -135,25 +134,4 @@ macro_rules! reworked_solutions {
             }
         }
     };
-}
-
-#[derive(Debug)]
-pub struct ParseError {
-    msg: String,
-}
-
-impl ParseError {
-    pub fn new(msg: &str) -> Self {
-        Self {
-            msg: msg.to_string(),
-        }
-    }
-}
-
-impl Error for ParseError {}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ParseError: {}", self.msg)
-    }
 }

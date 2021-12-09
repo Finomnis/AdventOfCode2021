@@ -4,7 +4,7 @@ use std::{fmt, str::FromStr};
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use crate::helpers::ParseError;
+use crate::helpers::input_parsing::ParseError;
 
 #[derive(Debug, Clone)]
 pub struct Coord {

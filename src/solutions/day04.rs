@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 
-use crate::helpers::ParseError;
+use crate::helpers::input_parsing::ParseError;
 
 #[derive(Debug)]
 pub struct BingoCell {
