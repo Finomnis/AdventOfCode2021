@@ -55,11 +55,11 @@ pub fn task2(input_data: &[u32]) -> u32 {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "day01_simple.txt", "7")
-        (complex, "day01_complex.txt", "1655")
+        (simple, "7")
+        (complex, "1655")
     },
     task2: {
-        (simple, "day01_simple.txt", "5")
-        (complex, "day01_complex.txt", "1683")
+        (simple, "5")
+        (complex, "1683")
     }
 }

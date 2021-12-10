@@ -220,11 +220,11 @@ pub mod render {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "day05_simple.txt", "5")
-        (complex, "day05_complex.txt", "5585")
+        (simple, "5")
+        (complex, "5585")
     },
     task2: {
-        (simple, "day05_simple.txt", "12")
-        (complex, "day05_complex.txt", "17193")
+        (simple, "12")
+        (complex, "17193")
     }
 }

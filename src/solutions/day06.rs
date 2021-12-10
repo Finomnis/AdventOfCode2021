@@ -45,11 +45,11 @@ pub fn task2(input_data: &[i64]) -> u64 {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "day06_simple.txt", "5934")
-        (complex, "day06_complex.txt", "393019")
+        (simple, "5934")
+        (complex, "393019")
     },
     task2: {
-        (simple, "day06_simple.txt", "26984457539")
-        (complex, "day06_complex.txt", "1757714216975")
+        (simple, "26984457539")
+        (complex, "1757714216975")
     }
 }

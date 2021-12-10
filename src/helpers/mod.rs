@@ -3,22 +3,27 @@ pub mod input_parsing;
 
 #[macro_export]
 macro_rules! aoc_tests {
-    ( $( $suite:ident : { $( ($name:ident, $input_file:expr, $expected_result:expr) )* } ),* ) => {
+    ( $( $suite:ident : { $( ($name:ident, $expected_result:expr) )* } ),* ) => {
         $(
         #[cfg(test)]
         mod $suite {
-            use std::path::PathBuf;
+            use std::path::{Path, PathBuf};
+            use std::ffi::OsString;
             use std::fs;
 
             $(
             #[test]
             fn $name() {
                 let data = {
-                    let input_file_path: &str = $input_file;
-                    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    let input_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                         .join("input_data")
-                        .join(input_file_path);
-                    fs::read_to_string(path).unwrap()
+                        .join([
+                            Path::new(file!()).file_stem().unwrap().to_os_string(),
+                            "_".into(),
+                            stringify!($name).into(),
+                        ].into_iter().collect::<OsString>())
+                        .with_extension("txt");
+                    fs::read_to_string(&input_file).unwrap_or_else(|e| panic!("Unable to open '{}': {}", input_file.into_os_string().into_string().unwrap(), e))
                 };
 
                 let expected_result: &str = $expected_result;

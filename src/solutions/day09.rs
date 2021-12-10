@@ -123,11 +123,11 @@ pub fn task2(input_data: &str) -> usize {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "day09_simple.txt", "15")
-        (complex, "day09_complex.txt", "535")
+        (simple, "15")
+        (complex, "535")
     },
     task2: {
-        (simple, "day09_simple.txt", "1134")
-        (complex, "day09_complex.txt", "1122700")
+        (simple, "1134")
+        (complex, "1122700")
     }
 }
