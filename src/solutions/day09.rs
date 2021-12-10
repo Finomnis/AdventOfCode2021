@@ -49,7 +49,7 @@ pub fn task1(input_data: &str) -> i64 {
 
 pub fn is_minimum((height, width): (usize, usize), map: &Array2<i64>) -> bool {
     if let Some(center) = map.get((height, width)) {
-        if matches!(
+        !(matches!(
             is_larger(Some(center), map.get((height, width + 1))),
             Some(true)
         ) || matches!(
@@ -64,12 +64,7 @@ pub fn is_minimum((height, width): (usize, usize), map: &Array2<i64>) -> bool {
                 && matches!(
                     is_larger(Some(center), map.get((height, width - 1))),
                     Some(true)
-                ))
-        {
-            false
-        } else {
-            true
-        }
+                )))
     } else {
         false
     }
