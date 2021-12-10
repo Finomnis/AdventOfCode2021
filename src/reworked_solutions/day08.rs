@@ -56,11 +56,11 @@ pub fn task2(input_data: &str) -> i64 {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "26")
-        (complex, "534")
+        simple => 26,
+        complex => 534,
     },
     task2: {
-        (simple, "61229")
-        (complex, "1070188")
+        simple => 61229,
+        complex => 1070188,
     }
 }

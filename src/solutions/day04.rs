@@ -157,11 +157,11 @@ pub fn task2(input_data: &BingoGame) -> i64 {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "4512")
-        (complex, "29440")
+        simple => 4512,
+        complex => 29440,
     },
     task2: {
-        (simple, "1924")
-        (complex, "13884")
+        simple => 1924,
+        complex => 13884,
     }
 }

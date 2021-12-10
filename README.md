@@ -56,16 +56,12 @@ Then, populate the solution with:
     ```
     crate::aoc_tests! {
         task1: {
-            (
-                <test_name>,
-                <input_file>,
-                <expected_result>
-            )
+            <test_name> => <expected_result>,
         },
         task2: {
             // For example:
-            (simple, "day01_simple.txt", "abcde")
-            (complex, "day01_complex.txt", "result")
+            simple => 12345,
+            complex => 56789,
         }
     }
     ```

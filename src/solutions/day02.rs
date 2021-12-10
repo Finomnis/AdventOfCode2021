@@ -115,11 +115,11 @@ pub fn task2(input_data: &[DriveCommand]) -> i64 {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "150")
-        (complex, "1938402")
+        simple => 150,
+        complex => 1938402,
     },
     task2: {
-        (simple, "900")
-        (complex, "1947878632")
+        simple => 900,
+        complex => 1947878632,
     }
 }

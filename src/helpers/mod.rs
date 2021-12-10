@@ -3,7 +3,7 @@ pub mod input_parsing;
 
 #[macro_export]
 macro_rules! aoc_tests {
-    ( $( $suite:ident : { $( ($name:ident, $expected_result:expr) )* } ),* ) => {
+    ( $( $suite:ident : { $( $name:ident => $expected_result:expr, )* } ),* ) => {
         $(
         #[cfg(test)]
         mod $suite {
@@ -23,14 +23,15 @@ macro_rules! aoc_tests {
                             stringify!($name).into(),
                         ].into_iter().collect::<OsString>())
                         .with_extension("txt");
-                    fs::read_to_string(&input_file).unwrap_or_else(|e| panic!("Unable to open '{}': {}", input_file.into_os_string().into_string().unwrap(), e))
+                    fs::read_to_string(&input_file).unwrap_or_else(
+                        |e| panic!("Unable to open '{}': {}", input_file.into_os_string().into_string().unwrap(), e)
+                    )
                 };
 
-                let expected_result: &str = $expected_result;
                 let input_data = super::parse_input(&data);
-                let actual_result = format!("{}", super::$suite(&input_data));
+                let actual_result = super::$suite(&input_data);
 
-                assert_eq!(expected_result, actual_result);
+                assert_eq!($expected_result, actual_result);
             }
             )*
         }

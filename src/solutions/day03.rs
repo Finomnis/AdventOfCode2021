@@ -90,11 +90,11 @@ pub fn task2(input_data: &[Vec<bool>]) -> i64 {
 
 crate::aoc_tests! {
     task1: {
-        (simple, "198")
-        (complex, "749376")
+        simple => 198,
+        complex => 749376,
     },
     task2: {
-        (simple, "230")
-        (complex, "2372923")
+        simple => 230,
+        complex => 2372923,
     }
 }
