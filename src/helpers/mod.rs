@@ -79,6 +79,13 @@ macro_rules! solutions {
 #[macro_export]
 macro_rules! renderers {
     ( $( ($day:ident, $($task:ident),* ) )* ) => {
+
+        mod renderers {
+            $(
+                pub mod $day;
+            )*
+        }
+
         fn run_renderer(day: u8, task: u8, data: &str) -> Result<Vec<String>> {
             let day_str = format!("day{:0>2}", day);
             let task_str = format!("task{}", task);
@@ -92,7 +99,7 @@ macro_rules! renderers {
                             stringify!($task)
                         );
                         let input_data = solutions::$day::parse_input(data);
-                        Ok(solutions::$day::render::$task(&input_data))
+                        Ok(renderers::$day::$task(&input_data))
                     },
                 )*)*
                 _ => Err(anyhow!(
