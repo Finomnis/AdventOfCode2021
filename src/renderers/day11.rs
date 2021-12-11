@@ -20,7 +20,7 @@ fn map_to_image(map: &Array2<u8>, scale: usize) -> ImgVec<RGBA8> {
             };
 
             for _ in 0..scale {
-                row_pixels.push(pixel.clone());
+                row_pixels.push(pixel);
             }
         }
         for _ in 0..scale {
@@ -32,9 +32,9 @@ fn map_to_image(map: &Array2<u8>, scale: usize) -> ImgVec<RGBA8> {
 }
 
 pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
-    let mut map = input_data.clone();
     let scale = 20;
     let time_step = 1.0 / 10.0;
+    let final_frames = 100;
 
     let (mut collector, writer) = gifski::new(gifski::Settings {
         quality: 100,
@@ -45,6 +45,9 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
     })
     .unwrap();
 
+    let num_frames = crate::solutions::day11::task2(input_data);
+
+    let mut map = input_data.clone();
     let collector_thread = std::thread::spawn(move || {
         let mut index = 0;
 
@@ -58,10 +61,10 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
                 .add_frame_rgba(index, map_to_image(&map, scale), index as f64 * time_step)
                 .unwrap();
             index += 1;
-            println!("Frame {} ...", index);
+            //println!("Frame {} ...", index);
         }
 
-        for _ in 0..100 {
+        for _ in 0..final_frames {
             update_map(&mut map);
             collector
                 .add_frame_rgba(index, map_to_image(&map, scale), index as f64 * time_step)
@@ -72,7 +75,7 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
 
     let filename = std::env::current_dir().unwrap().join("aoc2021_day11.gif");
     let file = File::create(&filename).unwrap();
-    let mut progress = gifski::progress::NoProgress {};
+    let mut progress = gifski::progress::ProgressBar::new((num_frames + final_frames) as u64);
     writer.write(&file, &mut progress).unwrap();
 
     collector_thread.join().unwrap();

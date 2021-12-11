@@ -79,7 +79,7 @@ pub fn task1(input_data: &Array2<u8>) -> usize {
     num_flashes
 }
 
-pub fn task2(input_data: &Array2<u8>) -> i64 {
+pub fn task2(input_data: &Array2<u8>) -> usize {
     let mut map = input_data.clone();
 
     let mut num_cycles = 1;
