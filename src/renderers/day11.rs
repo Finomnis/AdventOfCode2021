@@ -16,7 +16,8 @@ fn map_to_image(map: &Array2<u8>, scale: usize) -> ImgVec<RGBA8> {
             let pixel = if value == 0 {
                 RGBA8::new(255, 255, 128, 255)
             } else {
-                RGBA8::new((value - 1) * 16, (value - 1) * 16, (value - 1) * 16, 255)
+                let intensity = 170 - value * 12;
+                RGBA8::new(intensity, intensity, intensity, 255)
             };
 
             for _ in 0..scale {
