@@ -1,5 +1,6 @@
 pub mod accu_iter;
 pub mod input_parsing;
+pub mod nested_iterator_chain;
 
 #[macro_export]
 macro_rules! aoc_tests {
