@@ -62,29 +62,27 @@ fn find_num_paths(
     visited: &mut HashSet<usize>,
     depth: usize,
 ) -> usize {
+    if node_id == end {
+        //println!("{} -> end #PATH", "  ".repeat(depth));
+        return 1;
+    }
+
     let node = &graph[node_id];
 
-    let paths = if node_id == end {
-        //println!("{} -> end #PATH", "  ".repeat(depth));
-        1
-    } else {
-        //println!("{} -> {}", "  ".repeat(depth), node.name);
-        if !node.is_large && !visited.insert(node_id) {
-            return 0;
-        }
+    //println!("{} -> {}", "  ".repeat(depth), node.name);
+    if !node.is_large && !visited.insert(node_id) {
+        return 0;
+    }
 
-        let result = node
-            .neighbors
-            .iter()
-            .map(|&neighbor| find_num_paths(graph, neighbor, end, visited, depth + 1))
-            .sum();
+    let paths = node
+        .neighbors
+        .iter()
+        .map(|&neighbor| find_num_paths(graph, neighbor, end, visited, depth + 1))
+        .sum();
 
-        if !node.is_large {
-            visited.remove(&node_id);
-        }
-
-        result
-    };
+    if !node.is_large {
+        visited.remove(&node_id);
+    }
 
     paths
 }
@@ -115,47 +113,46 @@ fn find_num_paths_double_small(
     mut small_twice: bool,
     depth: usize,
 ) -> usize {
-    let paths = if node_id == end {
+    if node_id == end {
         //println!("{} -> end #PATH", "  ".repeat(depth));
-        1
-    } else {
-        let node = &graph[node_id];
+        return 1;
+    }
 
-        //println!("{} -> {}  {:?}", "  ".repeat(depth), node.name, visited);
+    let node = &graph[node_id];
 
-        let mut inserted = false;
-        if !node.is_large {
-            inserted = visited.insert(node_id);
-            if !inserted {
-                if small_twice || node_id == start {
-                    return 0;
-                } else {
-                    small_twice = true;
-                }
+    //println!("{} -> {}  {:?}", "  ".repeat(depth), node.name, visited);
+
+    let mut inserted = false;
+    if !node.is_large {
+        inserted = visited.insert(node_id);
+        if !inserted {
+            if small_twice || node_id == start {
+                return 0;
+            } else {
+                small_twice = true;
             }
-        };
-
-        let result = node
-            .neighbors
-            .iter()
-            .map(|&neighbor| {
-                find_num_paths_double_small(
-                    graph,
-                    neighbor,
-                    start,
-                    end,
-                    visited,
-                    small_twice,
-                    depth + 1,
-                )
-            })
-            .sum();
-
-        if inserted {
-            visited.remove(&node_id);
         }
-        result
     };
+
+    let paths = node
+        .neighbors
+        .iter()
+        .map(|&neighbor| {
+            find_num_paths_double_small(
+                graph,
+                neighbor,
+                start,
+                end,
+                visited,
+                small_twice,
+                depth + 1,
+            )
+        })
+        .sum();
+
+    if inserted {
+        visited.remove(&node_id);
+    }
 
     paths
 }
