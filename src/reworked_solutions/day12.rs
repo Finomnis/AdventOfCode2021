@@ -6,8 +6,8 @@ use crate::helpers::nested_iterator_chain::ChainNestedIterator;
 use crate::helpers::temporary_hashset::HashSetExt;
 
 #[derive(Debug)]
-pub struct GraphNode {
-    name: String,
+pub struct GraphNode<'a> {
+    name: &'a str,
     is_small: bool,
     neighbors: Vec<usize>,
 }
@@ -24,7 +24,7 @@ pub fn parse_input(input_data: &str) -> Vec<GraphNode> {
                 name,
                 (
                     GraphNode {
-                        name: name.to_string(),
+                        name,
                         neighbors: vec![],
                         is_small: !name.chars().any(char::is_uppercase),
                     },
