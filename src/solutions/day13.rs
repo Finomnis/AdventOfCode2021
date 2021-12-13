@@ -104,10 +104,7 @@ pub fn task1(input_data: &PuzzleInput) -> usize {
         .folds
         .iter()
         .take(1)
-        .fold(input_data.dots.clone(), |dots, fold| {
-            let dots = fold_dots(dots, fold);
-            dots
-        })
+        .fold(input_data.dots.clone(), fold_dots)
         .len()
 }
 
@@ -115,10 +112,7 @@ pub fn task2(input_data: &PuzzleInput) -> String {
     let folded_paper = input_data
         .folds
         .iter()
-        .fold(input_data.dots.clone(), |dots, fold| {
-            let dots = fold_dots(dots, fold);
-            dots
-        });
+        .fold(input_data.dots.clone(), fold_dots);
 
     paper_to_string(&folded_paper)
 }
