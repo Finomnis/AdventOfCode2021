@@ -62,7 +62,28 @@ pub trait HashSetExt<T>
 where
     T: Eq + Hash,
 {
-    fn temporary_insert<'a>(&'a mut self, el: T) -> (bool, TemporaryHashSet<'a, T>);
+    /// Inserts an element into the hashset, returning a guard.
+    /// When the guard is destroyed, the element gets removed again.
+    ///
+    /// This method is specifically tailored to be used in recursive algorithms,
+    /// like flood fills or path searches, that need to keep track of already visited items.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating whether the insertion was successful (e.g. the item did not exist yet),
+    /// and the Temporary HashSet that includes the given item.
+    ///
+    /// The Temporary HashSet can be dereferenced to a normal hashset.
+    ///
+    /// This is a zero-copy operation; the hashset returned by dereferencing the temporary hashset
+    /// is the original hashset, not a copy. It just had to go through the temporary hashset due
+    /// to mutability ownership.
+    ///
+    /// # Arguments
+    ///
+    /// * `item` - The item to be inserted temporarily.
+    ///
+    fn temporary_insert<'a>(&'a mut self, item: T) -> (bool, TemporaryHashSet<'a, T>);
 }
 
 impl<T> HashSetExt<T> for HashSet<T>
@@ -72,5 +93,35 @@ where
     fn temporary_insert<'a>(&'a mut self, el: T) -> (bool, TemporaryHashSet<'a, T>) {
         let temp_hashset = TemporaryHashSet::new(self, el);
         (temp_hashset.inserted, temp_hashset)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn works() {
+        let mut set = HashSet::from([1, 2, 3]);
+
+        assert_eq!(set, HashSet::from([1, 2, 3]));
+
+        {
+            let (insert_succeeded, temporary_set) = set.temporary_insert(4);
+
+            assert!(insert_succeeded);
+            assert_eq!(*temporary_set, HashSet::from([1, 2, 3, 4]));
+        }
+
+        assert_eq!(set, HashSet::from([1, 2, 3]));
+
+        {
+            let (insert_succeeded, temporary_set) = set.temporary_insert(3);
+
+            assert!(!insert_succeeded);
+            assert_eq!(*temporary_set, HashSet::from([1, 2, 3]));
+        }
+
+        assert_eq!(set, HashSet::from([1, 2, 3]));
     }
 }
