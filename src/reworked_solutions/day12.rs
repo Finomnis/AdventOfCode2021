@@ -44,16 +44,14 @@ pub fn parse_input(input_data: &str) -> Vec<GraphNode> {
         nodes.get_mut(second).unwrap().0.neighbors.push(first_id);
     });
 
-    let graph = nodes
+    nodes
         .into_iter()
         .sorted_unstable_by_key(|(_, (_, pos))| *pos)
         .map(|(_, (mut el, _))| {
             el.neighbors.sort_unstable();
             el
         })
-        .collect::<Vec<_>>();
-
-    graph
+        .collect()
 }
 
 fn find_num_paths(

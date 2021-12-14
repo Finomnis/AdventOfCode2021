@@ -1,4 +1,8 @@
-use std::{cmp::max, collections::HashSet, fmt::Write};
+use std::{
+    cmp::{max, Ordering},
+    collections::HashSet,
+    fmt::Write,
+};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dot {
@@ -52,24 +56,16 @@ pub fn parse_input(input_data: &str) -> PuzzleInput {
 pub fn fold_dots(dots: HashSet<Dot>, fold: &Fold) -> HashSet<Dot> {
     dots.into_iter()
         .filter_map(|Dot { x, y }| match fold {
-            Fold::X(seam) => {
-                if x > *seam {
-                    Some(Dot { x: 2 * seam - x, y })
-                } else if x == *seam {
-                    None
-                } else {
-                    Some(Dot { x, y })
-                }
-            }
-            Fold::Y(seam) => {
-                if y > *seam {
-                    Some(Dot { x, y: 2 * seam - y })
-                } else if y == *seam {
-                    None
-                } else {
-                    Some(Dot { x, y })
-                }
-            }
+            Fold::X(seam) => match x.cmp(seam) {
+                Ordering::Greater => Some(Dot { x: 2 * seam - x, y }),
+                Ordering::Equal => None,
+                Ordering::Less => Some(Dot { x, y }),
+            },
+            Fold::Y(seam) => match y.cmp(seam) {
+                Ordering::Greater => Some(Dot { x, y: 2 * seam - y }),
+                Ordering::Equal => None,
+                Ordering::Less => Some(Dot { x, y }),
+            },
         })
         .collect()
 }

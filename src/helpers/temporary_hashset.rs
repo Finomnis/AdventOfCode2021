@@ -83,14 +83,14 @@ where
     ///
     /// * `item` - The item to be inserted temporarily.
     ///
-    fn temporary_insert<'a>(&'a mut self, item: T) -> (bool, TemporaryHashSet<'a, T>);
+    fn temporary_insert(&mut self, item: T) -> (bool, TemporaryHashSet<T>);
 }
 
 impl<T> HashSetExt<T> for HashSet<T>
 where
     T: Eq + Hash + Clone,
 {
-    fn temporary_insert<'a>(&'a mut self, el: T) -> (bool, TemporaryHashSet<'a, T>) {
+    fn temporary_insert(&mut self, el: T) -> (bool, TemporaryHashSet<T>) {
         let temp_hashset = TemporaryHashSet::new(self, el);
         (temp_hashset.inserted, temp_hashset)
     }
