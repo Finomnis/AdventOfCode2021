@@ -62,6 +62,7 @@ pub fn task1(input_data: &PuzzleInput) -> usize {
 
     max - min
 }
+
 pub fn task2(input_data: &PuzzleInput) -> usize {
     let mut pair_histo = input_data
         .start
