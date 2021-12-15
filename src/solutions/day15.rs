@@ -10,9 +10,9 @@ pub fn parse_input(input_data: &str) -> Array2<u8> {
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct NextPathElement {
-    cost: u64,
-    coord: (usize, usize),
-    prev: Option<(usize, usize)>,
+    pub cost: u64,
+    pub coord: (usize, usize),
+    pub prev: Option<(usize, usize)>,
     remaining_lower_bound: u64,
 }
 
@@ -63,12 +63,12 @@ pub fn find_shortest_path<FV, FQ>(
     start: (usize, usize),
     goal: (usize, usize),
     query_map: FQ,
-    mut on_visited: FV,
+    mut on_step: FV,
     astar: bool,
 ) -> Option<u64>
 where
     FQ: Fn(&(usize, usize)) -> Option<u8>,
-    FV: FnMut(&NextPathElement),
+    FV: FnMut(&NextPathElement, bool),
 {
     let mut visited = HashSet::new();
     let mut next = BinaryHeap::from([NextPathElement {
@@ -86,24 +86,31 @@ where
         if !visited.insert(current.coord) {
             continue;
         }
-        on_visited(&current);
+        on_step(&current, true);
 
         if current.coord == goal {
             return Some(current.cost);
         }
 
-        next.extend(direct_neighbors(&current.coord).filter_map(|neighbor| {
-            query_map(&neighbor).map(|value| NextPathElement {
-                coord: neighbor,
-                cost: current.cost + value as u64,
-                prev: Some(current.coord),
-                remaining_lower_bound: if astar {
-                    manhattan_dist(neighbor, goal) as u64
-                } else {
-                    0
-                },
-            })
-        }));
+        next.extend(
+            direct_neighbors(&current.coord)
+                .filter_map(|neighbor| {
+                    query_map(&neighbor).map(|value| NextPathElement {
+                        coord: neighbor,
+                        cost: current.cost + value as u64,
+                        prev: Some(current.coord),
+                        remaining_lower_bound: if astar {
+                            manhattan_dist(neighbor, goal) as u64
+                        } else {
+                            0
+                        },
+                    })
+                })
+                .map(|neighbor| {
+                    on_step(&neighbor, false);
+                    neighbor
+                }),
+        );
     }
 
     None
@@ -119,7 +126,7 @@ pub fn task1(map: &Array2<u8>) -> u64 {
         goal,
         |&coord| map.get(coord).cloned(),
         //|el| println!("{:?}", el),
-        |_| (),
+        |_, _| (),
         false,
     )
     .unwrap()
@@ -147,7 +154,7 @@ pub fn task2(map: &Array2<u8>) -> u64 {
         goal,
         |&coord| get_wrapped_risk(map, coord),
         //|el| println!("{:?}", el),
-        |_| (),
+        |_, _| (),
         false,
     )
     .unwrap()
