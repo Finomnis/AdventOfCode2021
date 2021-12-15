@@ -67,7 +67,7 @@ pub fn find_shortest_path<FV, FQ>(
     astar: bool,
 ) -> Option<u64>
 where
-    FQ: Fn(&(usize, usize)) -> Option<u8>,
+    FQ: Fn((usize, usize)) -> Option<u8>,
     FV: FnMut(&NextPathElement, bool),
 {
     let mut visited = HashSet::new();
@@ -95,7 +95,7 @@ where
         next.extend(
             direct_neighbors(&current.coord)
                 .filter_map(|neighbor| {
-                    query_map(&neighbor).map(|value| NextPathElement {
+                    query_map(neighbor).map(|value| NextPathElement {
                         coord: neighbor,
                         cost: current.cost + value as u64,
                         prev: Some(current.coord),
@@ -124,8 +124,7 @@ pub fn task1(map: &Array2<u8>) -> u64 {
     find_shortest_path(
         start,
         goal,
-        |&coord| map.get(coord).cloned(),
-        //|el| println!("{:?}", el),
+        |coord| map.get(coord).cloned(),
         |_, _| (),
         false,
     )
@@ -152,8 +151,7 @@ pub fn task2(map: &Array2<u8>) -> u64 {
     find_shortest_path(
         start,
         goal,
-        |&coord| get_wrapped_risk(map, coord),
-        //|el| println!("{:?}", el),
+        |coord| get_wrapped_risk(map, coord),
         |_, _| (),
         false,
     )

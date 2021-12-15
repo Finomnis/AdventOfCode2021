@@ -6,103 +6,163 @@ use rgb::RGBA8;
 
 use crate::{
     helpers::rendering::{ArrayCollector, ToColor},
-    solutions::day15::{get_wrapped_risk, NextPathElement},
+    solutions::day15::get_wrapped_risk,
 };
 
 struct MapTile {
     risk: u8,
     considered: u8,
     solved: Option<(usize, usize)>,
+    part_of_solution: bool,
 }
 
 impl ToColor for MapTile {
     fn to_color(&self) -> RGBA8 {
-        let base_gray = 200 - self.risk * 15;
+        let base_gray = 200 - self.risk * 12;
         let mut r = base_gray;
         let mut g = base_gray;
         let mut b = base_gray;
 
-        if self.solved.is_some() {
-            r -= 30;
-            g -= 30;
+        if self.part_of_solution {
+            r = 255;
+            g -= 60;
+            b -= 60;
+            g /= 2;
+            b /= 2;
+        } else if self.solved.is_some() {
+            r -= 60;
+            g -= 60;
             b += 55;
         } else if self.considered > 0 {
-            r -= 30;
+            r -= 80;
             g += 55;
-            b -= 30;
+            b -= 80;
         }
 
         RGBA8::new(r, g, b, 255)
     }
 }
 
-pub fn run_algorithm<FV>(map: &Array2<u8>, step_callback: FV)
-where
-    FV: FnMut(&NextPathElement, bool),
-{
-    let start = (0, 0);
-    let size = map.dim();
-    let goal = (size.0 * 5 - 1, size.1 * 5 - 1);
-
-    crate::solutions::day15::find_shortest_path(
-        start,
-        goal,
-        |&coord| {
-            let wrapped_coord = (coord.0 % size.0, coord.1 % size.1);
-            let tile = (coord.0 / size.0, coord.1 / size.1);
-            if tile.0 >= 5 || tile.1 >= 5 {
-                None
-            } else {
-                map.get(wrapped_coord)
-                    .map(|&risk| ((risk as usize + tile.0 + tile.1 + 8) % 9 + 1) as u8)
-            }
-        },
-        step_callback,
-        false,
-    )
-    .unwrap();
+struct RenderConfig<R> {
+    scale: usize,
+    map_read: R,
+    map_size: (usize, usize),
+    start: (usize, usize),
+    goal: (usize, usize),
+    astar: bool,
+    speedup: usize,
+    speedup_end: usize,
 }
 
-pub fn generate_images(
-    collector: Option<gifski::Collector>,
-    map: &Array2<u8>,
-    speedup: usize,
-) -> usize {
-    let mut collector = ArrayCollector::new(collector, 1);
+fn generate_images<R>(collector: Option<gifski::Collector>, config: &RenderConfig<R>) -> usize
+where
+    R: Fn((usize, usize)) -> Option<u8>,
+{
+    let mut collector = ArrayCollector::new(collector, config.scale, 4.0);
     let time_step = 1.0 / 30.0;
 
-    let original_map_size = map.dim();
-    let map_size = (original_map_size.0 * 5, original_map_size.1 * 5);
-
-    let mut image_data = Array2::from_shape_fn(map_size, |(x, y)| MapTile {
-        risk: get_wrapped_risk(map, (x, y)).unwrap(),
+    let mut image_data = Array2::from_shape_fn(config.map_size, |(x, y)| MapTile {
+        risk: (config.map_read)((x, y)).unwrap(),
         considered: 0,
         solved: None,
+        part_of_solution: false,
     });
 
-    println!("Original size: {:?}", original_map_size);
-    println!("Map size: {:?}", map_size);
-    println!("Size: {:?}", image_data.dim());
+    image_data[config.start].part_of_solution = true;
+    image_data[config.goal].part_of_solution = true;
 
     collector.add_frame(&image_data, time_step * collector.get_num_frames() as f64);
 
+    // Run solving algorithm
     let mut skipped = 0;
-    run_algorithm(map, |element, solved| {
-        if solved {
-            image_data[element.coord].solved = element.prev;
-            skipped += 1;
-            if skipped >= speedup {
-                skipped = 0;
-                collector.add_frame(&image_data, time_step * collector.get_num_frames() as f64);
+    crate::solutions::day15::find_shortest_path(
+        config.start,
+        config.goal,
+        &config.map_read,
+        |element, solved| {
+            if solved {
+                image_data[element.coord].solved = element.prev;
+                skipped += 1;
+                if skipped >= config.speedup {
+                    skipped = 0;
+                    collector.add_frame(&image_data, time_step * collector.get_num_frames() as f64);
+                }
+            } else {
+                image_data[element.coord].considered += 1;
             }
+        },
+        config.astar,
+    )
+    .unwrap();
+
+    collector.add_frame(&image_data, time_step * collector.get_num_frames() as f64);
+
+    // Animate path trace
+    let mut current_path_coord = config.goal;
+    skipped = 0;
+    loop {
+        let current_path_element = &mut image_data[current_path_coord];
+        current_path_element.part_of_solution = true;
+
+        if let Some(next) = current_path_element.solved {
+            current_path_coord = next;
         } else {
-            image_data[element.coord].considered += 1;
+            break;
         }
-    });
+
+        skipped += 1;
+        if skipped >= config.speedup_end {
+            skipped = 0;
+            collector.add_frame(&image_data, time_step * collector.get_num_frames() as f64);
+        }
+    }
 
     collector.add_frame(&image_data, time_step * collector.get_num_frames() as f64);
 
     collector.get_num_frames()
+}
+
+pub fn task1(input_data: &Array2<u8>) -> Vec<String> {
+    let (collector, writer) = gifski::new(gifski::Settings {
+        quality: 100,
+        fast: false,
+        repeat: gifski::Repeat::Infinite,
+        width: None,
+        height: None,
+    })
+    .unwrap();
+
+    let map = input_data.clone();
+    let map_read = move |coord| map.get(coord).cloned();
+    let map_size = input_data.dim();
+
+    let config = RenderConfig {
+        scale: 3,
+        map_read,
+        map_size,
+        start: (0, 0),
+        goal: (map_size.0 - 1, map_size.1 - 1),
+        astar: false,
+        speedup: 30,
+        speedup_end: 2,
+    };
+
+    let num_frames = generate_images(None, &config);
+
+    let collector_thread = std::thread::spawn(move || {
+        generate_images(Some(collector), &config);
+    });
+
+    let filename = std::env::current_dir()
+        .unwrap()
+        .join("aoc2021_day15_task1.gif");
+    let file = File::create(&filename).unwrap();
+    let mut progress = gifski::progress::ProgressBar::new(num_frames as u64);
+    writer.write(&file, &mut progress).unwrap();
+
+    collector_thread.join().unwrap();
+
+    vec![filename.into_os_string().into_string().unwrap()]
 }
 
 pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
@@ -115,13 +175,25 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
     })
     .unwrap();
 
-    let speedup = 500;
-
-    let num_frames = generate_images(None, input_data, speedup);
-
     let map = input_data.clone();
+    let map_read = move |coord| get_wrapped_risk(&map, coord);
+    let map_size = (input_data.dim().0 * 5, input_data.dim().1 * 5);
+
+    let config = RenderConfig {
+        scale: 1,
+        map_read,
+        map_size,
+        start: (0, 0),
+        goal: (map_size.0 - 1, map_size.1 - 1),
+        astar: false,
+        speedup: 1000,
+        speedup_end: 10,
+    };
+
+    let num_frames = generate_images(None, &config);
+
     let collector_thread = std::thread::spawn(move || {
-        generate_images(Some(collector), &map, speedup);
+        generate_images(Some(collector), &config);
     });
 
     let filename = std::env::current_dir()

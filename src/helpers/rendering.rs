@@ -10,6 +10,7 @@ pub struct ArrayCollector {
     collector: Option<gifski::Collector>,
     scale: usize,
     num_frames: usize,
+    sleep_time: f64,
 }
 
 fn map_to_image<T>(map: &Array2<T>, scale: usize) -> ImgVec<RGBA8>
@@ -35,11 +36,12 @@ where
 }
 
 impl ArrayCollector {
-    pub fn new(collector: Option<gifski::Collector>, scale: usize) -> Self {
+    pub fn new(collector: Option<gifski::Collector>, scale: usize, sleep_time: f64) -> Self {
         Self {
             collector,
             scale,
             num_frames: 0,
+            sleep_time,
         }
     }
 
@@ -50,7 +52,7 @@ impl ArrayCollector {
         if let Some(collector) = self.collector.as_mut() {
             let img = map_to_image(data, self.scale);
             collector
-                .add_frame_rgba(self.num_frames, img, timestamp)
+                .add_frame_rgba(self.num_frames, img, timestamp + self.sleep_time)
                 .unwrap()
         }
         self.num_frames += 1;
