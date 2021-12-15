@@ -34,6 +34,7 @@ reworked_solutions! {
 renderers! {
     (day05, task1, task2)
     (day11, task2)
+    (day15, task2)
 }
 
 /// This is a solver for Advent of Code 2021 tasks.
