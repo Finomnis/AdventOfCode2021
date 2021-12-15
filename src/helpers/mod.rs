@@ -63,8 +63,13 @@ macro_rules! solutions {
                             stringify!($day),
                             stringify!($task)
                         );
+                        let t0 = std::time::Instant::now();
                         let input_data = solutions::$day::parse_input(data);
+                        let t1 = std::time::Instant::now();
                         let solution = solutions::$day::$task(&input_data);
+                        let t2 = std::time::Instant::now();
+                        println!("   ... parse input: {} ms", (t1-t0).as_millis());
+                        println!("   ... calculate: {} ms", (t2-t1).as_millis());
                         Ok(format!("{}", solution))
                     },
                 )*)*
@@ -136,8 +141,13 @@ macro_rules! reworked_solutions {
                             stringify!($day),
                             stringify!($task)
                         );
+                        let t0 = std::time::Instant::now();
                         let input_data = reworked_solutions::$day::parse_input(data);
+                        let t1 = std::time::Instant::now();
                         let solution = reworked_solutions::$day::$task(&input_data);
+                        let t2 = std::time::Instant::now();
+                        println!("   ... parse input: {} ms", (t1-t0).as_millis());
+                        println!("   ... calculate: {} ms", (t2-t1).as_millis());
                         Ok(format!("{}", solution))
                     },
                 )*)*
