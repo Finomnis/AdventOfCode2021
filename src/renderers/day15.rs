@@ -1,11 +1,8 @@
-use std::fs::File;
-
-use gifski;
 use ndarray::Array2;
 use rgb::RGBA8;
 
 use crate::{
-    helpers::rendering::{ArrayCollector, ToColor},
+    helpers::rendering::{Collector, FramesCounter, Renderers, ToColor, Writer},
     solutions::day15::get_wrapped_risk,
 };
 
@@ -44,7 +41,6 @@ impl ToColor for MapTile {
 }
 
 struct RenderConfig<R> {
-    scale: usize,
     map_read: R,
     map_size: (usize, usize),
     start: (usize, usize),
@@ -54,11 +50,10 @@ struct RenderConfig<R> {
     speedup_end: usize,
 }
 
-fn generate_images<R>(collector: Option<gifski::Collector>, config: &RenderConfig<R>) -> usize
+fn generate_images<R>(mut collector: impl Collector, config: &RenderConfig<R>) -> usize
 where
     R: Fn((usize, usize)) -> Option<u8>,
 {
-    let mut collector = ArrayCollector::new(collector, config.scale, 4.0);
     let time_step = 1.0 / 30.0;
 
     let mut image_data = Array2::from_shape_fn(config.map_size, |(x, y)| MapTile {
@@ -123,21 +118,11 @@ where
 }
 
 pub fn task1(input_data: &Array2<u8>) -> Vec<String> {
-    let (collector, writer) = gifski::new(gifski::Settings {
-        quality: 100,
-        fast: false,
-        repeat: gifski::Repeat::Infinite,
-        width: None,
-        height: None,
-    })
-    .unwrap();
-
     let map = input_data.clone();
     let map_read = move |coord| map.get(coord).cloned();
     let map_size = input_data.dim();
 
     let config = RenderConfig {
-        scale: 3,
         map_read,
         map_size,
         start: (0, 0),
@@ -147,18 +132,18 @@ pub fn task1(input_data: &Array2<u8>) -> Vec<String> {
         speedup_end: 2,
     };
 
-    let num_frames = generate_images(None, &config);
+    let num_frames = generate_images(FramesCounter::new(), &config);
+
+    let (collector, writer) = Renderers::create_gif_renderer(3, 4.0);
 
     let collector_thread = std::thread::spawn(move || {
-        generate_images(Some(collector), &config);
+        generate_images(collector, &config);
     });
 
     let filename = std::env::current_dir()
         .unwrap()
         .join("aoc2021_day15_task1.gif");
-    let file = File::create(&filename).unwrap();
-    let mut progress = gifski::progress::ProgressBar::new(num_frames as u64);
-    writer.write(&file, &mut progress).unwrap();
+    writer.write(&filename, Some(num_frames));
 
     collector_thread.join().unwrap();
 
@@ -166,21 +151,11 @@ pub fn task1(input_data: &Array2<u8>) -> Vec<String> {
 }
 
 pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
-    let (collector, writer) = gifski::new(gifski::Settings {
-        quality: 100,
-        fast: false,
-        repeat: gifski::Repeat::Infinite,
-        width: None,
-        height: None,
-    })
-    .unwrap();
-
     let map = input_data.clone();
     let map_read = move |coord| get_wrapped_risk(&map, coord);
     let map_size = (input_data.dim().0 * 5, input_data.dim().1 * 5);
 
     let config = RenderConfig {
-        scale: 1,
         map_read,
         map_size,
         start: (0, 0),
@@ -190,18 +165,18 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
         speedup_end: 10,
     };
 
-    let num_frames = generate_images(None, &config);
+    let num_frames = generate_images(FramesCounter::new(), &config);
+
+    let (collector, writer) = Renderers::create_gif_renderer(1, 4.0);
 
     let collector_thread = std::thread::spawn(move || {
-        generate_images(Some(collector), &config);
+        generate_images(collector, &config);
     });
 
     let filename = std::env::current_dir()
         .unwrap()
         .join("aoc2021_day15_task2.gif");
-    let file = File::create(&filename).unwrap();
-    let mut progress = gifski::progress::ProgressBar::new(num_frames as u64);
-    writer.write(&file, &mut progress).unwrap();
+    writer.write(&filename, Some(num_frames));
 
     collector_thread.join().unwrap();
 
