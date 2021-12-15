@@ -55,7 +55,7 @@ pub fn search_shortest_path<G, F>(
     goal: (usize, usize),
     query_map: G,
     mut on_visited: F,
-) -> u64
+) -> Option<u64>
 where
     G: Fn(&(usize, usize)) -> Option<u8>,
     F: FnMut(&NextPathElement),
@@ -74,7 +74,7 @@ where
         on_visited(&current);
 
         if current.coord == goal {
-            return current.cost;
+            return Some(current.cost);
         }
 
         next.extend(direct_neighbors(&current.coord).filter_map(|neighbor| {
@@ -86,7 +86,7 @@ where
         }));
     }
 
-    0
+    None
 }
 
 pub fn task1(map: &Array2<u8>) -> u64 {
@@ -98,12 +98,34 @@ pub fn task1(map: &Array2<u8>) -> u64 {
         start,
         goal,
         |&coord| map.get(coord).cloned(),
-        |el| println!("{:?}", el),
+        //|el| println!("{:?}", el),
+        |_| (),
     )
+    .unwrap()
 }
 
-pub fn task2(_input_data: &Array2<u8>) -> usize {
-    0
+pub fn task2(map: &Array2<u8>) -> u64 {
+    let start = (0, 0);
+    let size = map.dim();
+    let goal = (size.0 * 5 - 1, size.1 * 5 - 1);
+
+    search_shortest_path(
+        start,
+        goal,
+        |&coord| {
+            let wrapped_coord = (coord.0 % size.0, coord.1 % size.1);
+            let tile = (coord.0 / size.0, coord.1 / size.1);
+            if tile.0 >= 5 || tile.1 >= 5 {
+                None
+            } else {
+                map.get(wrapped_coord)
+                    .map(|&risk| ((risk as usize + tile.0 + tile.1 + 8) % 9 + 1) as u8)
+            }
+        },
+        //|el| println!("{:?}", el),
+        |_| (),
+    )
+    .unwrap()
 }
 
 crate::aoc_tests! {
@@ -112,7 +134,7 @@ crate::aoc_tests! {
         complex => 745,
     },
     task2: {
-        simple => 0,
+        simple => 315,
         complex => 0,
     }
 }
