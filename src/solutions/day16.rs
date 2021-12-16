@@ -114,6 +114,7 @@ mod parse {
         Some(Int(result))
     }
 
+    #[allow(clippy::blocks_in_if_conditions)]
     fn literal(stream: &mut impl Iterator<Item = bool>) -> Option<Payload> {
         let mut val = 0;
         while {

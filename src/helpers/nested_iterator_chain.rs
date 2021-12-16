@@ -1,21 +1,19 @@
 //#[derive(Clone)]
 #[must_use = "iterators are lazy and do nothing unless consumed"]
-pub struct NestedIteratorChain<Out, OutGen, In: Iterator, F>
+pub struct NestedIteratorChain<Out: Iterator, In: Iterator, F>
 where
-    F: FnMut(In::Item) -> OutGen,
-    OutGen: Iterator<Item = Out>,
+    F: FnMut(In::Item) -> Out,
 {
     pub(crate) iter: In,
-    generating_iter: Option<OutGen>,
+    generating_iter: Option<Out>,
     f: F,
 }
 
-impl<Out, OutGen, In: Iterator, F> NestedIteratorChain<Out, OutGen, In, F>
+impl<Out: Iterator, In: Iterator, F> NestedIteratorChain<Out, In, F>
 where
-    F: FnMut(In::Item) -> OutGen,
-    OutGen: Iterator<Item = Out>,
+    F: FnMut(In::Item) -> Out,
 {
-    pub(crate) fn new(iter: In, f: F) -> NestedIteratorChain<Out, OutGen, In, F> {
+    pub(crate) fn new(iter: In, f: F) -> NestedIteratorChain<Out, In, F> {
         let mut obj = NestedIteratorChain {
             iter,
             generating_iter: None,
@@ -28,15 +26,14 @@ where
     }
 }
 
-impl<Out, OutGen, In: Iterator, F> Iterator for NestedIteratorChain<Out, OutGen, In, F>
+impl<Out: Iterator, In: Iterator, F> Iterator for NestedIteratorChain<Out, In, F>
 where
-    F: FnMut(In::Item) -> OutGen,
-    OutGen: Iterator<Item = Out>,
+    F: FnMut(In::Item) -> Out,
 {
-    type Item = Out;
+    type Item = Out::Item;
 
     #[inline]
-    fn next(&mut self) -> Option<Out> {
+    fn next(&mut self) -> Option<Self::Item> {
         // Attempt #1, everything is fine
         if let Some(gen_iter) = &mut self.generating_iter {
             if let Some(next) = gen_iter.next() {
@@ -61,14 +58,10 @@ where
 }
 
 pub trait ChainNestedIterator: Iterator {
-    fn chain_nested_iterator<Out, OutGen, F>(
-        self,
-        f: F,
-    ) -> NestedIteratorChain<Out, OutGen, Self, F>
+    fn chain_nested_iterator<Out: Iterator, F>(self, f: F) -> NestedIteratorChain<Out, Self, F>
     where
         Self: Sized,
-        F: FnMut(Self::Item) -> OutGen,
-        OutGen: Iterator<Item = Out>,
+        F: FnMut(Self::Item) -> Out,
     {
         NestedIteratorChain::new(self, f)
     }
