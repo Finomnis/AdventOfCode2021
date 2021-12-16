@@ -250,6 +250,6 @@ crate::aoc_tests! {
         greater => 0,
         equal => 0,
         simple5 => 1,
-        complex => 0,
+        complex => 9485076995911,
     }
 }
