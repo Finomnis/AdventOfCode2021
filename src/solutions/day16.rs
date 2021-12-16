@@ -1,4 +1,5 @@
 use num::Unsigned;
+use std::fmt::Write;
 
 use crate::helpers::nested_iterator_chain::ChainNestedIterator;
 
@@ -6,6 +7,7 @@ pub fn parse_input(input_data: &str) -> &str {
     input_data
 }
 
+#[derive(Debug)]
 pub struct Int<const N: usize>([bool; N]);
 impl<const N: usize> Int<N> {
     pub fn to_num<T>(&self) -> T
@@ -15,12 +17,6 @@ impl<const N: usize> Int<N> {
         self.0.iter().fold(T::zero(), |acc, &val| {
             acc * (T::one() + T::one()) + if val { T::one() } else { T::zero() }
         })
-    }
-}
-
-impl<const N: usize> std::fmt::Debug for Int<N> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_num::<u128>())
     }
 }
 
@@ -40,6 +36,30 @@ pub struct Packet {
 pub enum Payload {
     Literal(u64),
     Operator(Vec<Packet>),
+}
+
+pub enum Instruction {
+    Sum,
+    Product,
+    Minimum,
+    Maximum,
+    Greater,
+    Les,
+    Equal,
+}
+
+impl std::fmt::Display for Packet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (v{})", self.payload, self.version)
+    }
+}
+impl std::fmt::Display for Payload {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Payload::Literal(num) => write!(f, "{}", num),
+            Payload::Operator(_) => write!(f, "op"),
+        }
+    }
 }
 
 mod parse {
@@ -68,12 +88,22 @@ mod parse {
         let length_as_count = stream.next()?;
         if length_as_count {
             let count: Int<11> = parse::int(stream)?;
-            println!("COUNT: {}", count);
-            Some(Payload::Literal(69))
+            let subpackets = (0..count.to_num::<usize>())
+                .map(|_| parse::packet(stream))
+                .collect::<Option<Vec<_>>>()?;
+            Some(Payload::Operator(subpackets))
         } else {
             let length: Int<15> = parse::int(stream)?;
-            println!("LENGTH: {}", length);
-            Some(Payload::Literal(420))
+            let mut data = (0..length.to_num::<usize>())
+                .map(|_| stream.next())
+                .collect::<Option<Vec<_>>>()?
+                .into_iter()
+                .peekable();
+            let mut subpackets = vec![];
+            while data.peek().is_some() {
+                subpackets.push(parse::packet(&mut data)?);
+            }
+            Some(Payload::Operator(subpackets))
         }
     }
 
@@ -104,14 +134,40 @@ fn hex_to_binary_stream(input_data: &str) -> impl Iterator<Item = bool> + '_ {
     })
 }
 
-pub fn task1(input_data: &str) -> u64 {
+#[allow(dead_code)]
+fn packet_tree_to_string(packet: &Packet) -> Result<String, Box<dyn std::error::Error>> {
+    let mut result = String::new();
+    writeln!(result, "{}", packet)?;
+    if let Payload::Operator(children) = &packet.payload {
+        for child in children
+            .iter()
+            .map(|child| packet_tree_to_string(child))
+            .collect::<Result<Vec<_>, _>>()?
+        {
+            for line in child.lines() {
+                writeln!(result, "  {}", line)?;
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn get_accumulated_version_numbers(packet: &Packet) -> usize {
+    packet.version.to_num::<usize>()
+        + match &packet.payload {
+            Payload::Literal(_) => 0,
+            Payload::Operator(children) => {
+                children.iter().map(get_accumulated_version_numbers).sum()
+            }
+        }
+}
+
+pub fn task1(input_data: &str) -> usize {
     let stream = &mut hex_to_binary_stream(input_data);
 
     let packet = parse::packet(stream).unwrap();
 
-    println!("{:?}", packet);
-
-    0
+    get_accumulated_version_numbers(&packet)
 }
 
 pub fn task2(_input_data: &str) -> u64 {
@@ -125,7 +181,7 @@ crate::aoc_tests! {
         simple3 => 23,
         simple4 => 31,
         literal => 6,
-        complex => 0,
+        complex => 897,
     },
     task2: {
         complex => 0,
