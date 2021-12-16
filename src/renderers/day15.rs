@@ -54,7 +54,7 @@ fn generate_images<R>(mut collector: impl Collector, config: &RenderConfig<R>) -
 where
     R: Fn((usize, usize)) -> Option<u8>,
 {
-    let time_step = 1.0 / 30.0;
+    let time_step = 1.0 / 60.0;
 
     let mut image_data = Array2::from_shape_fn(config.map_size, |(x, y)| MapTile {
         risk: (config.map_read)((x, y)).unwrap(),
@@ -128,8 +128,8 @@ pub fn task1(input_data: &Array2<u8>) -> Vec<String> {
         start: (0, 0),
         goal: (map_size.0 - 1, map_size.1 - 1),
         astar: false,
-        speedup: 30,
-        speedup_end: 2,
+        speedup: 15,
+        speedup_end: 1,
     };
 
     let num_frames = generate_images(FramesCounter::new(), &config);
@@ -160,9 +160,9 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
         map_size,
         start: (0, 0),
         goal: (map_size.0 - 1, map_size.1 - 1),
-        astar: false,
-        speedup: 1000,
-        speedup_end: 10,
+        astar: true,
+        speedup: 500,
+        speedup_end: 5,
     };
 
     let num_frames = generate_images(FramesCounter::new(), &config);
