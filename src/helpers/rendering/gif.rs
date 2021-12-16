@@ -1,8 +1,6 @@
 use std::fs::File;
 
-use imgref::ImgVec;
-use ndarray::{Array2, Axis};
-use rgb::RGBA8;
+use ndarray::Array2;
 
 pub struct GifskyCollector {
     collector: gifski::Collector,
@@ -49,28 +47,9 @@ pub fn create_gifski(scale: usize, sleep_time: f64) -> (impl super::Collector, i
     )
 }
 
-fn map_to_image(map: &Array2<impl super::ToColor>, scale: usize) -> ImgVec<RGBA8> {
-    let mut pixels = vec![];
-
-    for row in map.axis_iter(Axis(0)) {
-        let mut row_pixels = vec![];
-        for value in &row {
-            let pixel = value.to_color();
-            for _ in 0..scale {
-                row_pixels.push(pixel);
-            }
-        }
-        for _ in 0..scale {
-            pixels.extend(row_pixels.iter());
-        }
-    }
-
-    ImgVec::<RGBA8>::new(pixels, map.dim().1 * scale, map.dim().0 * scale)
-}
-
 impl super::Collector for GifskyCollector {
     fn add_frame(&mut self, data: &Array2<impl super::ToColor>, timestamp: f64) {
-        let img = map_to_image(data, self.scale);
+        let img = super::common::map_to_image(data, self.scale);
         self.collector
             .add_frame_rgba(self.frames_count, img, timestamp + self.sleep_time)
             .unwrap();

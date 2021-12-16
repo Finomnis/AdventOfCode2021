@@ -134,7 +134,7 @@ pub fn task1(input_data: &Array2<u8>) -> Vec<String> {
 
     let num_frames = generate_images(FramesCounter::new(), &config);
 
-    let (collector, writer) = Renderers::create_gif_renderer(3, 4.0);
+    let (collector, writer) = Renderers::create_webp_renderer(3, 4.0);
 
     let collector_thread = std::thread::spawn(move || {
         generate_images(collector, &config);
@@ -142,7 +142,7 @@ pub fn task1(input_data: &Array2<u8>) -> Vec<String> {
 
     let filename = std::env::current_dir()
         .unwrap()
-        .join("aoc2021_day15_task1.gif");
+        .join("aoc2021_day15_task1.webp");
     writer.write(&filename, Some(num_frames));
 
     collector_thread.join().unwrap();
@@ -167,7 +167,7 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
 
     let num_frames = generate_images(FramesCounter::new(), &config);
 
-    let (collector, writer) = Renderers::create_gif_renderer(1, 4.0);
+    let (collector, writer) = Renderers::create_webp_renderer(1, 4.0);
 
     let collector_thread = std::thread::spawn(move || {
         generate_images(collector, &config);
@@ -175,7 +175,7 @@ pub fn task2(input_data: &Array2<u8>) -> Vec<String> {
 
     let filename = std::env::current_dir()
         .unwrap()
-        .join("aoc2021_day15_task2.gif");
+        .join("aoc2021_day15_task2.webp");
     writer.write(&filename, Some(num_frames));
 
     collector_thread.join().unwrap();

@@ -3,7 +3,9 @@ use std::path::Path;
 use ndarray::Array2;
 use rgb::RGBA8;
 
+mod common;
 mod gif;
+mod webp;
 
 pub trait ToColor {
     fn to_color(&self) -> RGBA8;
@@ -41,8 +43,12 @@ pub struct Renderers {
     _inconstructible: (),
 }
 
+#[allow(dead_code)]
 impl Renderers {
     pub fn create_gif_renderer(scale: usize, sleep_time: f64) -> (impl Collector, impl Writer) {
         self::gif::create_gifski(scale, sleep_time)
+    }
+    pub fn create_webp_renderer(scale: usize, sleep_time: f64) -> (impl Collector, impl Writer) {
+        self::webp::create_webp(scale, sleep_time)
     }
 }
