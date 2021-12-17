@@ -123,19 +123,41 @@ impl Payload {
 // }
 
 mod parsers {
+    pub type Bits<'a> = (&'a [u8], usize);
     use super::{Instruction, Packet, Payload};
-    use nom::{bits::complete::take, IResult};
+    use nom::{
+        bits::complete::{tag, take},
+        branch::alt,
+        multi::many_till,
+        sequence::{preceded, tuple},
+        IResult,
+    };
 
-    pub fn packet(input: (&[u8], usize)) -> IResult<(&[u8], usize), Packet> {
-        let (input, version) = take(3usize)(input)?;
+    pub fn literal(input: Bits) -> IResult<Bits, Payload> {
+        let part_continue = preceded(tag(1, 1usize), take(4usize));
+        let part_finished = preceded(tag(0, 1usize), take(4usize));
+        let number_parts = many_till(part_continue, part_finished);
+        let (input, (parts, last)) = preceded(tag(4, 3usize), number_parts)(input)?;
 
-        Ok((
-            input,
-            Packet {
-                version,
-                payload: Payload::Literal(39),
-            },
-        ))
+        let number = parts
+            .into_iter()
+            .chain(std::iter::once::<u64>(last))
+            .fold(0, |acc, part| acc * 16 + part);
+
+        Ok((input, Payload::Literal(number)))
+    }
+
+    pub fn operator(input: Bits) -> IResult<Bits, Payload> {
+        Ok((input, Payload::Literal(13)))
+    }
+
+    pub fn payload(input: Bits) -> IResult<Bits, Payload> {
+        alt((literal, operator))(input)
+    }
+
+    pub fn packet(input: Bits) -> IResult<Bits, Packet> {
+        let (input, (version, payload)) = tuple((take(3usize), payload))(input)?;
+        Ok((input, Packet { version, payload }))
     }
 }
 
@@ -151,7 +173,7 @@ pub fn parse_input(input_data: &str) -> Packet {
     let data = hex_to_binary(input_data.trim());
 
     let (_, packet) =
-        bits::<_, _, Error<(&[u8], usize)>, Error<&[u8]>, _>(parsers::packet)(&data).unwrap();
+        bits::<_, _, Error<parsers::Bits>, Error<&[u8]>, _>(parsers::packet)(&data).unwrap();
 
     packet
 }
