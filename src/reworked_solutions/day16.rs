@@ -128,6 +128,7 @@ mod parsers {
     use nom::{
         bits::complete::{tag, take},
         branch::alt,
+        combinator::map_opt,
         multi::many_till,
         sequence::{preceded, tuple},
         IResult,
@@ -141,13 +142,33 @@ mod parsers {
 
         let number = parts
             .into_iter()
-            .chain(std::iter::once::<u64>(last))
-            .fold(0, |acc, part| acc * 16 + part);
+            .chain(std::iter::once(last))
+            .fold(0, |acc, part: u64| acc * 16 + part);
 
         Ok((input, Payload::Literal(number)))
     }
 
+    pub fn instruction(input: Bits) -> IResult<Bits, Instruction> {
+        map_opt(
+            take(3usize),
+            |instruction_type: u8| match instruction_type {
+                0 => Some(Instruction::Sum),
+                1 => Some(Instruction::Product),
+                2 => Some(Instruction::Minimum),
+                3 => Some(Instruction::Maximum),
+                5 => Some(Instruction::Greater),
+                6 => Some(Instruction::Less),
+                7 => Some(Instruction::Equal),
+                _ => None,
+            },
+        )(input)
+    }
+
     pub fn operator(input: Bits) -> IResult<Bits, Payload> {
+        let (input, instruction) = instruction(input)?;
+
+        println!("INST: {:?}", instruction);
+
         Ok((input, Payload::Literal(13)))
     }
 
