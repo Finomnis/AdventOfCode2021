@@ -1,31 +1,5 @@
+use regex::Regex;
 use std::{cmp::Ordering, ops::RangeInclusive};
-
-mod parser {
-    use super::Rect;
-    use nom::{
-        bytes::complete::tag,
-        character::complete::i32,
-        sequence::{preceded, separated_pair},
-        IResult,
-    };
-
-    fn i32_range(input: &str) -> IResult<&str, (i32, i32)> {
-        separated_pair(i32, tag(".."), i32)(input)
-    }
-
-    pub fn parse(input: &str) -> IResult<&str, Rect> {
-        let (input, (x_min, x_max)) = preceded(tag("target area: x="), i32_range)(input)?;
-        let (input, (y_min, y_max)) = preceded(tag(", y="), i32_range)(input)?;
-
-        Ok((
-            input,
-            Rect {
-                x: x_min..=x_max,
-                y: y_min..=y_max,
-            },
-        ))
-    }
-}
 
 #[derive(Debug)]
 pub struct Rect {
@@ -34,8 +8,18 @@ pub struct Rect {
 }
 
 pub fn parse_input(input_data: &str) -> Rect {
-    let (_, rect) = parser::parse(input_data.trim()).unwrap();
-    rect
+    let re = Regex::new(r"^target area: x=(\d+)\.\.(\d+), y=(\-?\d+)\.\.(\-?\d+)$").unwrap();
+    let captures = re.captures(input_data.trim()).unwrap();
+
+    let x_min = captures[1].parse().unwrap();
+    let x_max = captures[2].parse().unwrap();
+    let y_min = captures[3].parse().unwrap();
+    let y_max = captures[4].parse().unwrap();
+
+    Rect {
+        x: x_min..=x_max,
+        y: y_min..=y_max,
+    }
 }
 
 pub fn task1(target: &Rect) -> i32 {
