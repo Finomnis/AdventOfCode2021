@@ -124,13 +124,15 @@ impl Payload {
 
 mod parsers {
     use super::{Instruction, Packet, Payload};
-    use nom::IResult;
+    use nom::{bits::complete::take, IResult};
 
-    pub fn packet(data: (&[u8], usize)) -> IResult<(&[u8], usize), Packet> {
+    pub fn packet(input: (&[u8], usize)) -> IResult<(&[u8], usize), Packet> {
+        let (input, version) = take(3usize)(input)?;
+
         Ok((
-            data,
+            input,
             Packet {
-                version: 33,
+                version,
                 payload: Payload::Literal(39),
             },
         ))
