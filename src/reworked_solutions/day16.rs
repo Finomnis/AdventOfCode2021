@@ -49,79 +49,6 @@ impl Payload {
     }
 }
 
-// mod parse {
-//     use super::*;
-
-//     fn int<const N: usize>(stream: &mut impl Iterator<Item = bool>) -> Option<Int<N>> {
-//         let mut result = [false; N];
-//         for val in &mut result {
-//             *val = stream.next()?;
-//         }
-//         Some(Int(result))
-//     }
-
-//     #[allow(clippy::blocks_in_if_conditions)]
-//     fn literal(stream: &mut impl Iterator<Item = bool>) -> Option<Payload> {
-//         let mut val = 0;
-//         while {
-//             let needs_more = stream.next()?;
-//             let part: Int<4> = parse::int(stream)?;
-//             val = val * 16 + part.to_num::<u64>();
-//             needs_more
-//         } {}
-//         Some(Payload::Literal(val))
-//     }
-
-//     fn operator(stream: &mut impl Iterator<Item = bool>, payload_type: u8) -> Option<Payload> {
-//         let length_as_count = stream.next()?;
-//         let subpackets = if length_as_count {
-//             let count: Int<11> = parse::int(stream)?;
-//             (0..count.to_num::<usize>())
-//                 .map(|_| parse::packet(stream))
-//                 .collect::<Option<Vec<_>>>()?
-//         } else {
-//             let length: Int<15> = parse::int(stream)?;
-//             let mut data = (0..length.to_num::<usize>())
-//                 .map(|_| stream.next())
-//                 .collect::<Option<Vec<_>>>()?
-//                 .into_iter()
-//                 .peekable();
-//             let mut subpackets = vec![];
-//             while data.peek().is_some() {
-//                 subpackets.push(parse::packet(&mut data)?);
-//             }
-//             subpackets
-//         };
-
-//         let instruction = match payload_type {
-//             0 => Instruction::Sum,
-//             1 => Instruction::Product,
-//             2 => Instruction::Minimum,
-//             3 => Instruction::Maximum,
-//             5 => Instruction::Greater,
-//             6 => Instruction::Less,
-//             7 => Instruction::Equal,
-//             _ => panic!("Unknown payload type: {}", payload_type),
-//         };
-
-//         Some(Payload::Operator(instruction, subpackets))
-//     }
-
-//     fn payload(stream: &mut impl Iterator<Item = bool>) -> Option<Payload> {
-//         let payload_type: Int<3> = parse::int(stream)?;
-//         match payload_type {
-//             Int([true, false, false]) => parse::literal(stream),
-//             _ => parse::operator(stream, payload_type.to_num()),
-//         }
-//     }
-
-//     pub fn packet(stream: &mut impl Iterator<Item = bool>) -> Option<Packet> {
-//         let version = parse::int(stream)?;
-//         let payload = parse::payload(stream)?;
-//         Some(Packet { version, payload })
-//     }
-// }
-
 mod parsers {
     pub type Bits<'a> = (&'a [u8], usize);
     use super::{Instruction, Packet, Payload};
@@ -129,10 +56,14 @@ mod parsers {
         bits::complete::{tag, take},
         branch::alt,
         combinator::map_opt,
-        multi::many_till,
-        sequence::{preceded, tuple},
+        multi::{length_count, many_till},
+        sequence::preceded,
         IResult,
     };
+
+    fn length(input: &Bits) -> usize {
+        input.0.len() * 8 - input.1
+    }
 
     pub fn literal(input: Bits) -> IResult<Bits, Payload> {
         let part_continue = preceded(tag(1, 1usize), take(4usize));
@@ -164,12 +95,32 @@ mod parsers {
         )(input)
     }
 
+    pub fn subpackets_count(input: Bits) -> IResult<Bits, Vec<Packet>> {
+        let packet_count = take::<_, usize, _, _>(11usize);
+        preceded(tag(1, 1usize), length_count(packet_count, packet))(input)
+    }
+
+    pub fn subpackets_length(input: Bits) -> IResult<Bits, Vec<Packet>> {
+        let (mut input, data_length): (Bits, usize) =
+            preceded(tag(0, 1usize), take(15usize))(input)?;
+        let expected_length = length(&input) - data_length;
+
+        // Iterate manually because length_value does not work on bit parsers
+        let mut packets = vec![];
+        while length(&input) > expected_length {
+            let result = packet(input)?;
+            input = result.0;
+            packets.push(result.1);
+        }
+
+        Ok((input, packets))
+    }
+
     pub fn operator(input: Bits) -> IResult<Bits, Payload> {
         let (input, instruction) = instruction(input)?;
+        let (input, subpackets) = alt((subpackets_count, subpackets_length))(input)?;
 
-        println!("INST: {:?}", instruction);
-
-        Ok((input, Payload::Literal(13)))
+        Ok((input, Payload::Operator(instruction, subpackets)))
     }
 
     pub fn payload(input: Bits) -> IResult<Bits, Payload> {
@@ -177,7 +128,8 @@ mod parsers {
     }
 
     pub fn packet(input: Bits) -> IResult<Bits, Packet> {
-        let (input, (version, payload)) = tuple((take(3usize), payload))(input)?;
+        let (input, version) = take(3usize)(input)?;
+        let (input, payload) = payload(input)?;
         Ok((input, Packet { version, payload }))
     }
 }
@@ -208,7 +160,6 @@ pub fn task1(packet: &Packet) -> u64 {
 }
 
 pub fn task2(packet: &Packet) -> u64 {
-    println!("{:?}", packet);
     packet.evaluate()
 }
 
