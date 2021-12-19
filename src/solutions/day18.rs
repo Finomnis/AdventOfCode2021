@@ -189,24 +189,14 @@ impl std::ops::Add for SnailfishNumber {
     fn add(self, rhs: Self) -> Self::Output {
         let mut result =
             SnailfishNumber(SnailfishMember::nested(self), SnailfishMember::nested(rhs));
-        while result.reduce() {
-            // println!("{}", result);
-        }
+        while result.reduce() {}
         result
     }
 }
 
 impl std::iter::Sum for SnailfishNumber {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.reduce(|prev, acc| {
-            // println!();
-            // println!("   {}", prev);
-            // println!(" + {}", acc);
-            let result = prev + acc;
-            // println!(" = {}", result);
-            result
-        })
-        .unwrap()
+        iter.reduce(|prev, acc| prev + acc).unwrap()
     }
 }
 
@@ -223,14 +213,11 @@ pub fn parse_input(input_data: &str) -> Vec<SnailfishNumber> {
 }
 
 pub fn task1(numbers: &[SnailfishNumber]) -> u64 {
-    let numbers = numbers.to_vec();
-
-    // for number in &numbers {
-    //     println!("{}", number);
-    // }
-
-    let result: SnailfishNumber = numbers.into_iter().sum::<SnailfishNumber>();
-    result.magnitude()
+    numbers
+        .to_vec()
+        .into_iter()
+        .sum::<SnailfishNumber>()
+        .magnitude()
 }
 
 pub fn task2(numbers: &[SnailfishNumber]) -> u64 {

@@ -195,7 +195,7 @@ fn packet_tree_to_string(packet: &Packet) -> Result<String, Box<dyn std::error::
     if let Payload::Operator(_, children) = &packet.payload {
         for child in children
             .iter()
-            .map(|child| packet_tree_to_string(child))
+            .map(packet_tree_to_string)
             .collect::<Result<Vec<_>, _>>()?
         {
             for line in child.lines() {
