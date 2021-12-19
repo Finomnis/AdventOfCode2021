@@ -271,7 +271,7 @@ pub fn find_rotation_and_offset(known: &[Beacon], other: &[Beacon]) -> Option<(O
     }
 }
 
-pub fn get_all_beacon_positions(scanners: &[Scanner]) -> Vec<Pos> {
+pub fn get_all_beacons_and_scanners(scanners: &[Scanner]) -> (Vec<Pos>, Vec<Pos>) {
     let mut hashed_beacons = HashMap::new();
 
     for scanner in scanners {
@@ -300,6 +300,8 @@ pub fn get_all_beacon_positions(scanners: &[Scanner]) -> Vec<Pos> {
 
     let mut known_beacons = scanners[0].beacons.clone();
 
+    let mut scanner_positions = vec![Pos(0, 0, 0)];
+
     while !unknown_scanners.is_empty() {
         let (_count, scanner) = scanners
             .iter()
@@ -317,6 +319,8 @@ pub fn get_all_beacon_positions(scanners: &[Scanner]) -> Vec<Pos> {
 
         let (offset, rotation) =
             find_rotation_and_offset(&known_beacons, &scanner.beacons).unwrap();
+
+        scanner_positions.push(Pos(offset.0, offset.1, offset.2));
 
         //println!("Found rotation & offset: {:?} {:?}", rotation, offset);
 
@@ -337,15 +341,38 @@ pub fn get_all_beacon_positions(scanners: &[Scanner]) -> Vec<Pos> {
         unknown_scanners.remove(&scanner.id);
     }
 
-    known_beacons.iter().map(|b| b.pos.clone()).collect()
+    (
+        known_beacons.iter().map(|b| b.pos.clone()).collect(),
+        scanner_positions,
+    )
 }
 
 pub fn task1(scanners: &[Scanner]) -> usize {
-    get_all_beacon_positions(scanners).len()
+    let (beacons, _scanners) = get_all_beacons_and_scanners(scanners);
+    beacons.len()
 }
 
-pub fn task2(_scanners: &[Scanner]) -> u64 {
-    0
+pub fn task2(scanners: &[Scanner]) -> u32 {
+    let (_beacons, scanners) = get_all_beacons_and_scanners(scanners);
+
+    // for scanner in &scanners {
+    //     println!("{},{},{}", scanner.0, scanner.1, scanner.2);
+    // }
+
+    let result = scanners
+        .iter()
+        .tuple_combinations()
+        .map(|(a, b)| {
+            let dist =
+                (a.0 - b.0).abs() as u32 + (a.1 - b.1).abs() as u32 + (a.2 - b.2).abs() as u32;
+            //println!("Dist {}: {:?} {:?}", dist, a, b);
+            (a.clone(), b.clone(), dist)
+        })
+        .max_by_key(|(_, _, dist)| *dist)
+        .unwrap();
+
+    //println!("{:?}", result);
+    result.2
 }
 
 crate::aoc_tests! {
@@ -354,7 +381,7 @@ crate::aoc_tests! {
         complex => 378,
     },
     task2: {
-        simple => 0,
-        complex => 0,
+        simple => 3621,
+        complex => 13148,
     }
 }
