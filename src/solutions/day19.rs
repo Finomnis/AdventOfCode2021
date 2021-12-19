@@ -3,6 +3,10 @@ use std::{
     hash::Hasher,
 };
 
+use itertools::Itertools;
+
+use crate::helpers::nested_iterator_chain::ChainNestedIterator;
+
 const SCANNER_RANGE: u32 = 1000;
 const LOCAL_NEIGHBOR_RANGE: u32 = 200;
 
@@ -52,18 +56,44 @@ pub fn parse_input(input_data: &str) -> Vec<Scanner> {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Pos(i32, i32, i32);
+impl Pos {
+    pub fn rotate(&self, rot: &Rotation) -> Pos {
+        let p = [self.0, self.1, self.2];
+        let mut p_mapped = [
+            p[rot.mapping.0 as usize],
+            p[rot.mapping.1 as usize],
+            p[rot.mapping.2 as usize],
+        ];
+        if rot.flips.0 {
+            p_mapped[0] *= -1;
+        }
+        if rot.flips.1 {
+            p_mapped[1] *= -1;
+        }
+        if rot.flips.2 {
+            p_mapped[2] *= -1;
+        }
+        Pos(p_mapped[0], p_mapped[1], p_mapped[2])
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Beacon {
     pos: Pos,
-    seen_by: HashSet<usize>,
     neighbor_hash: Option<u64>,
+}
+
+impl std::hash::Hash for Beacon {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.pos.hash(state);
+    }
 }
 
 #[derive(Debug)]
 pub struct Scanner {
     id: usize,
     beacons: Vec<Beacon>,
+    known_beacon_hashes: HashSet<u64>,
 }
 
 fn distance_hash(p0: &Pos, p1: &Pos) -> Option<u64> {
@@ -105,7 +135,7 @@ impl Scanner {
                             hasher.write_u64(*distance);
                         }
                         let hash = hasher.finish();
-                        println!("Hash: {} => {:?}", hash, neighbor_distances);
+                        //println!("Hash: {} => {:?}", hash, neighbor_distances);
                         Some(hash)
                     }
                 } else {
@@ -114,17 +144,89 @@ impl Scanner {
 
                 Beacon {
                     pos: pos.clone(),
-                    seen_by: HashSet::from([id]),
                     neighbor_hash,
                 }
             })
             .collect::<Vec<_>>();
-        Self { id, beacons }
+
+        let known_beacon_hashes = beacons
+            .iter()
+            .filter_map(|beacon| beacon.neighbor_hash)
+            .collect::<HashSet<_>>();
+        Self {
+            id,
+            beacons,
+            known_beacon_hashes,
+        }
     }
 }
 
+const POSSIBLE_BASE_ROTATIONS: [((u8, u8, u8), bool); 6] = [
+    ((0, 1, 2), false),
+    ((0, 2, 1), true),
+    ((1, 0, 2), true),
+    ((1, 2, 0), false),
+    ((2, 0, 1), false),
+    ((2, 1, 0), true),
+];
+
+const POSSIBLE_ROTATION_FLIPS: [(bool, bool, bool); 4] = [
+    (false, false, false),
+    (true, true, false),
+    (true, false, true),
+    (false, true, true),
+];
+
+fn possible_rotations() -> impl Iterator<Item = Rotation> {
+    POSSIBLE_BASE_ROTATIONS
+        .iter()
+        .chain_nested_iterator(|&(base_rot, base_flip)| {
+            POSSIBLE_ROTATION_FLIPS.iter().map(move |flip| Rotation {
+                mapping: base_rot,
+                flips: (base_flip ^ flip.0, base_flip ^ flip.1, base_flip ^ flip.2),
+            })
+        })
+}
+
+#[derive(Debug)]
+pub struct Offset(i32, i32, i32);
+
+#[derive(Debug)]
+pub struct Rotation {
+    mapping: (u8, u8, u8),
+    flips: (bool, bool, bool),
+}
+pub fn find_rotation_and_offset(known: &[Beacon], other: &[Beacon]) -> Option<(Offset, Rotation)> {
+    let points_known = known
+        .iter()
+        .filter_map(|b| b.neighbor_hash.map(|hash| (hash, b.pos.clone())))
+        .collect::<HashMap<_, _>>();
+    let points_other = known
+        .iter()
+        .filter_map(|b| b.neighbor_hash.map(|hash| (hash, b.pos.clone())))
+        .collect::<HashMap<_, _>>();
+    let hashes = points_known
+        .keys()
+        .collect::<HashSet<_>>()
+        .intersection(&points_other.keys().collect::<HashSet<_>>())
+        .cloned()
+        .cloned()
+        .collect::<HashSet<_>>();
+
+    if hashes.len() < 3 {
+        println!("Not enough overlap! This heurestic algorithm is fast, but needs enough overlap to function correctly.");
+        return None;
+    }
+    possible_rotations()
+        .map(|rot| {
+            println!("Rotation: {:?}", rot);
+        })
+        .collect::<Vec<_>>();
+    None
+}
+
 pub fn task1(scanners: &[Scanner]) -> u64 {
-    let mut potential_mappings = HashMap::new();
+    let mut hashed_beacons = HashMap::new();
 
     for scanner in scanners {
         println!("SCANNER: {}", scanner.id);
@@ -132,7 +234,7 @@ pub fn task1(scanners: &[Scanner]) -> u64 {
             println!("  - {:?}: {:?}", beacon.pos, beacon.neighbor_hash);
 
             if let Some(hash) = beacon.neighbor_hash {
-                potential_mappings
+                hashed_beacons
                     .entry(hash)
                     .or_insert_with(|| HashSet::new())
                     .insert(scanner.id);
@@ -141,12 +243,36 @@ pub fn task1(scanners: &[Scanner]) -> u64 {
         println!();
     }
 
-    println!("{:?}", potential_mappings);
+    println!("{:?}", hashed_beacons);
 
     let mut unknown_scanners = (1..scanners.len()).collect::<HashSet<_>>();
+    let mut known_beacon_hashes = scanners[0]
+        .beacons
+        .iter()
+        .filter_map(|beacon| beacon.neighbor_hash)
+        .collect::<HashSet<_>>();
+
+    let mut known_beacons = scanners[0].beacons.clone();
 
     while !unknown_scanners.is_empty() {
-        return 0;
+        let (count, scanner) = scanners
+            .iter()
+            .filter(|s| unknown_scanners.contains(&s.id))
+            .map(|scanner| {
+                let overlap = known_beacon_hashes.intersection(&scanner.known_beacon_hashes);
+                let overlap_count = overlap.count();
+                println!("Overlap to {}: {}", scanner.id, overlap_count);
+                (overlap_count, scanner)
+            })
+            .max_by_key(|(key, _)| *key)
+            .unwrap();
+
+        println!("Chosen scanner {} with {} overlaps.", scanner.id, count);
+
+        find_rotation_and_offset(&known_beacons, &scanner.beacons).unwrap();
+
+        known_beacon_hashes.extend(scanner.known_beacon_hashes.iter());
+        unknown_scanners.remove(&scanner.id);
     }
 
     0
