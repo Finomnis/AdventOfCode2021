@@ -1,6 +1,6 @@
 use std::{
     collections::{hash_map::DefaultHasher, HashMap, HashSet},
-    hash::Hasher,
+    hash::{Hash, Hasher},
 };
 
 use itertools::Itertools;
@@ -75,18 +75,15 @@ impl Pos {
         }
         Pos(p_mapped[0], p_mapped[1], p_mapped[2])
     }
+    pub fn apply_offset(&self, offset: &Offset) -> Pos {
+        Pos(self.0 + offset.0, self.1 + offset.1, self.2 + offset.2)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Beacon {
     pos: Pos,
     neighbor_hash: Option<u64>,
-}
-
-impl std::hash::Hash for Beacon {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.pos.hash(state);
-    }
 }
 
 #[derive(Debug)]
@@ -188,8 +185,14 @@ fn possible_rotations() -> impl Iterator<Item = Rotation> {
         })
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct Offset(i32, i32, i32);
+
+impl Offset {
+    pub fn from_start_to_target(start: &Pos, target: &Pos) -> Self {
+        Self(target.0 - start.0, target.1 - start.1, target.2 - start.2)
+    }
+}
 
 #[derive(Debug)]
 pub struct Rotation {
@@ -199,11 +202,11 @@ pub struct Rotation {
 pub fn find_rotation_and_offset(known: &[Beacon], other: &[Beacon]) -> Option<(Offset, Rotation)> {
     let points_known = known
         .iter()
-        .filter_map(|b| b.neighbor_hash.map(|hash| (hash, b.pos.clone())))
+        .filter_map(|b| b.neighbor_hash.map(|hash| (hash, b.clone())))
         .collect::<HashMap<_, _>>();
-    let points_other = known
+    let points_other = other
         .iter()
-        .filter_map(|b| b.neighbor_hash.map(|hash| (hash, b.pos.clone())))
+        .filter_map(|b| b.neighbor_hash.map(|hash| (hash, b.clone())))
         .collect::<HashMap<_, _>>();
     let hashes = points_known
         .keys()
@@ -217,21 +220,64 @@ pub fn find_rotation_and_offset(known: &[Beacon], other: &[Beacon]) -> Option<(O
         println!("Not enough overlap! This heurestic algorithm is fast, but needs enough overlap to function correctly.");
         return None;
     }
-    possible_rotations()
+    let (score, rotation, offset) = possible_rotations()
         .map(|rot| {
-            println!("Rotation: {:?}", rot);
+            // Map all beacons to correct orientation
+            let beacons = hashes
+                .iter()
+                .map(|hash| points_other[hash].clone())
+                .map(|mut beacon| {
+                    beacon.pos = beacon.pos.rotate(&rot);
+                    beacon
+                })
+                .collect::<Vec<_>>();
+
+            let scores = beacons
+                .iter()
+                .map(|start_beacon| {
+                    let offset = Offset::from_start_to_target(
+                        &start_beacon.pos,
+                        &points_known[&start_beacon.neighbor_hash.unwrap()].pos,
+                    );
+
+                    let score = beacons
+                        .iter()
+                        .cloned()
+                        .filter(|beacon| {
+                            let pos = beacon.pos.apply_offset(&offset);
+                            pos == points_known[&beacon.neighbor_hash.unwrap()].pos
+                        })
+                        .count();
+
+                    (offset, score)
+                })
+                .into_group_map();
+
+            let (offset, score) = scores
+                .iter()
+                .map(|(key, value)| (key.clone(), value.iter().sum::<usize>()))
+                .max_by_key(|(_, key)| *key)
+                .unwrap();
+
+            (score, rot, offset)
         })
-        .collect::<Vec<_>>();
-    None
+        .max_by_key(|(score, _, _)| *score)
+        .unwrap();
+
+    if score > 1 {
+        Some((offset, rotation))
+    } else {
+        None
+    }
 }
 
-pub fn task1(scanners: &[Scanner]) -> u64 {
+pub fn task1(scanners: &[Scanner]) -> usize {
     let mut hashed_beacons = HashMap::new();
 
     for scanner in scanners {
-        println!("SCANNER: {}", scanner.id);
+        //println!("SCANNER: {}", scanner.id);
         for beacon in &scanner.beacons {
-            println!("  - {:?}: {:?}", beacon.pos, beacon.neighbor_hash);
+            //println!("  - {:?}: {:?}", beacon.pos, beacon.neighbor_hash);
 
             if let Some(hash) = beacon.neighbor_hash {
                 hashed_beacons
@@ -240,10 +286,10 @@ pub fn task1(scanners: &[Scanner]) -> u64 {
                     .insert(scanner.id);
             }
         }
-        println!();
+        //println!();
     }
 
-    println!("{:?}", hashed_beacons);
+    //println!("{:?}", hashed_beacons);
 
     let mut unknown_scanners = (1..scanners.len()).collect::<HashSet<_>>();
     let mut known_beacon_hashes = scanners[0]
@@ -255,27 +301,43 @@ pub fn task1(scanners: &[Scanner]) -> u64 {
     let mut known_beacons = scanners[0].beacons.clone();
 
     while !unknown_scanners.is_empty() {
-        let (count, scanner) = scanners
+        let (_count, scanner) = scanners
             .iter()
             .filter(|s| unknown_scanners.contains(&s.id))
             .map(|scanner| {
                 let overlap = known_beacon_hashes.intersection(&scanner.known_beacon_hashes);
                 let overlap_count = overlap.count();
-                println!("Overlap to {}: {}", scanner.id, overlap_count);
+                //println!("Overlap to {}: {}", scanner.id, overlap_count);
                 (overlap_count, scanner)
             })
             .max_by_key(|(key, _)| *key)
             .unwrap();
 
-        println!("Chosen scanner {} with {} overlaps.", scanner.id, count);
+        //println!("Chosen scanner {} with {} overlaps.", scanner.id, count);
 
-        find_rotation_and_offset(&known_beacons, &scanner.beacons).unwrap();
+        let (offset, rotation) =
+            find_rotation_and_offset(&known_beacons, &scanner.beacons).unwrap();
+
+        //println!("Found rotation & offset: {:?} {:?}", rotation, offset);
+
+        // Add new points to map
+        for mut beacon in scanner.beacons.iter().cloned() {
+            beacon.pos = beacon.pos.rotate(&rotation).apply_offset(&offset);
+            if let Some(existing_beacon) = known_beacons.iter_mut().find(|b| b.pos == beacon.pos) {
+                //println!("Beacon already exists, updating hash if necessary ...");
+                if existing_beacon.neighbor_hash.is_none() {
+                    existing_beacon.neighbor_hash = beacon.neighbor_hash;
+                }
+            } else {
+                known_beacons.push(beacon);
+            }
+        }
 
         known_beacon_hashes.extend(scanner.known_beacon_hashes.iter());
         unknown_scanners.remove(&scanner.id);
     }
 
-    0
+    known_beacons.len()
 }
 
 pub fn task2(_scanners: &[Scanner]) -> u64 {
