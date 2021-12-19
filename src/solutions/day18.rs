@@ -59,7 +59,7 @@ impl std::fmt::Display for SnailfishNumber {
 }
 
 #[must_use = "Results of the reduce step actually need to be processed."]
-pub enum ReduceResult {
+pub enum ExplodeResult {
     Ok,
     Changed,
     Exploded(u64, u64),
@@ -87,6 +87,19 @@ impl SnailfishMember {
             SnailfishMember::Nested(nested) => nested.0.propagate_right(propagated),
         }
     }
+    pub fn try_split(&mut self) -> bool {
+        match self {
+            SnailfishMember::Regular(num) => {
+                if *num > 9 {
+                    *self = SnailfishMember::nested(split_number(*num));
+                    true
+                } else {
+                    false
+                }
+            }
+            SnailfishMember::Nested(nested) => nested.try_split(),
+        }
+    }
 }
 
 impl SnailfishNumber {
@@ -94,71 +107,65 @@ impl SnailfishNumber {
     ///
     /// Return 'false' if no further reduction is required
     pub fn reduce(&mut self) -> bool {
-        match self.reduce_impl(0) {
-            ReduceResult::Ok => false,
-            ReduceResult::Changed => true,
-            ReduceResult::Exploded(_, _) => panic!("Toplevel items should never explode"),
-            ReduceResult::PropagateLeft(_) => true,
-            ReduceResult::PropagateRight(_) => true,
-        }
+        let exploded = match self.try_explode(0) {
+            ExplodeResult::Ok => false,
+            ExplodeResult::Changed => true,
+            ExplodeResult::Exploded(_, _) => panic!("Toplevel items should never explode"),
+            ExplodeResult::PropagateLeft(_) => true,
+            ExplodeResult::PropagateRight(_) => true,
+        };
+
+        exploded || self.try_split()
     }
 
-    pub fn reduce_impl(&mut self, depth: usize) -> ReduceResult {
+    pub fn try_split(&mut self) -> bool {
+        self.0.try_split() || self.1.try_split()
+    }
+
+    pub fn try_explode(&mut self, depth: usize) -> ExplodeResult {
         if depth >= 4 {
             if let SnailfishNumber(
                 SnailfishMember::Regular(left),
                 SnailfishMember::Regular(right),
             ) = &self
             {
-                return ReduceResult::Exploded(*left, *right);
+                return ExplodeResult::Exploded(*left, *right);
             }
         }
 
-        match &mut self.0 {
-            SnailfishMember::Regular(num) => {
-                if *num > 9 {
-                    self.0 = SnailfishMember::nested(split_number(*num));
-                    return ReduceResult::Changed;
-                }
-            }
-            SnailfishMember::Nested(nested) => match nested.reduce_impl(depth + 1) {
-                ReduceResult::Ok => (),
-                ReduceResult::Exploded(left, right) => {
+        if let SnailfishMember::Nested(nested) = &mut self.0 {
+            match nested.try_explode(depth + 1) {
+                ExplodeResult::Ok => (),
+                ExplodeResult::Exploded(left, right) => {
                     self.0 = SnailfishMember::regular(0);
                     self.1.propagate_right(right);
-                    return ReduceResult::PropagateLeft(left);
+                    return ExplodeResult::PropagateLeft(left);
                 }
-                ReduceResult::PropagateRight(propagated) => {
+                ExplodeResult::PropagateRight(propagated) => {
                     self.1.propagate_right(propagated);
-                    return ReduceResult::Changed;
+                    return ExplodeResult::Changed;
                 }
                 result => return result,
-            },
+            }
         }
 
-        match &mut self.1 {
-            SnailfishMember::Regular(num) => {
-                if *num > 9 {
-                    self.1 = SnailfishMember::nested(split_number(*num));
-                    return ReduceResult::Changed;
-                }
-            }
-            SnailfishMember::Nested(nested) => match nested.reduce_impl(depth + 1) {
-                ReduceResult::Ok => (),
-                ReduceResult::Exploded(left, right) => {
+        if let SnailfishMember::Nested(nested) = &mut self.1 {
+            match nested.try_explode(depth + 1) {
+                ExplodeResult::Ok => (),
+                ExplodeResult::Exploded(left, right) => {
                     self.1 = SnailfishMember::regular(0);
                     self.0.propagate_left(left);
-                    return ReduceResult::PropagateRight(right);
+                    return ExplodeResult::PropagateRight(right);
                 }
-                ReduceResult::PropagateLeft(propagated) => {
+                ExplodeResult::PropagateLeft(propagated) => {
                     self.0.propagate_left(propagated);
-                    return ReduceResult::Changed;
+                    return ExplodeResult::Changed;
                 }
                 result => return result,
-            },
+            }
         }
 
-        ReduceResult::Ok
+        ExplodeResult::Ok
     }
 }
 
@@ -169,7 +176,7 @@ impl std::ops::Add for SnailfishNumber {
         let mut result =
             SnailfishNumber(SnailfishMember::nested(self), SnailfishMember::nested(rhs));
         while result.reduce() {
-            println!("{}", result);
+            //println!("{}", result);
         }
         result
     }
@@ -186,14 +193,16 @@ pub fn parse_input(input_data: &str) -> Vec<SnailfishNumber> {
 pub fn task1(numbers: &[SnailfishNumber]) -> u64 {
     let numbers = numbers.to_vec();
 
-    for number in &numbers {
-        println!("{}", number);
-    }
+    // for number in &numbers {
+    //     println!("{}", number);
+    // }
 
     numbers.into_iter().reduce(|prev, acc| {
-        println!("Computing {} + {} ...", prev, acc);
+        println!();
+        println!("   {}", prev);
+        println!(" + {}", acc);
         let result = prev + acc;
-        println!("  ... result: {}", result);
+        println!(" = {}", result);
         result
     });
 
