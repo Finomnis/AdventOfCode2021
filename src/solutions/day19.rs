@@ -271,7 +271,7 @@ pub fn find_rotation_and_offset(known: &[Beacon], other: &[Beacon]) -> Option<(O
     }
 }
 
-pub fn task1(scanners: &[Scanner]) -> usize {
+pub fn get_all_beacon_positions(scanners: &[Scanner]) -> Vec<Pos> {
     let mut hashed_beacons = HashMap::new();
 
     for scanner in scanners {
@@ -337,7 +337,11 @@ pub fn task1(scanners: &[Scanner]) -> usize {
         unknown_scanners.remove(&scanner.id);
     }
 
-    known_beacons.len()
+    known_beacons.iter().map(|b| b.pos.clone()).collect()
+}
+
+pub fn task1(scanners: &[Scanner]) -> usize {
+    get_all_beacon_positions(scanners).len()
 }
 
 pub fn task2(_scanners: &[Scanner]) -> u64 {
