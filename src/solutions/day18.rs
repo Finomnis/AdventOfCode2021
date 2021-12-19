@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 mod parser {
     use super::{SnailfishMember, SnailfishNumber};
     use nom::{
@@ -87,6 +89,7 @@ impl SnailfishMember {
             SnailfishMember::Nested(nested) => nested.0.propagate_right(propagated),
         }
     }
+
     pub fn try_split(&mut self) -> bool {
         match self {
             SnailfishMember::Regular(num) => {
@@ -98,6 +101,13 @@ impl SnailfishMember {
                 }
             }
             SnailfishMember::Nested(nested) => nested.try_split(),
+        }
+    }
+
+    pub fn magnitude(&self) -> u64 {
+        match self {
+            SnailfishMember::Regular(num) => *num,
+            SnailfishMember::Nested(nested) => nested.magnitude(),
         }
     }
 }
@@ -167,6 +177,10 @@ impl SnailfishNumber {
 
         ExplodeResult::Ok
     }
+
+    pub fn magnitude(&self) -> u64 {
+        3 * self.0.magnitude() + 2 * self.1.magnitude()
+    }
 }
 
 impl std::ops::Add for SnailfishNumber {
@@ -176,9 +190,23 @@ impl std::ops::Add for SnailfishNumber {
         let mut result =
             SnailfishNumber(SnailfishMember::nested(self), SnailfishMember::nested(rhs));
         while result.reduce() {
-            //println!("{}", result);
+            // println!("{}", result);
         }
         result
+    }
+}
+
+impl std::iter::Sum for SnailfishNumber {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.reduce(|prev, acc| {
+            // println!();
+            // println!("   {}", prev);
+            // println!(" + {}", acc);
+            let result = prev + acc;
+            // println!(" = {}", result);
+            result
+        })
+        .unwrap()
     }
 }
 
@@ -201,29 +229,42 @@ pub fn task1(numbers: &[SnailfishNumber]) -> u64 {
     //     println!("{}", number);
     // }
 
-    numbers.into_iter().reduce(|prev, acc| {
-        println!();
-        println!("   {}", prev);
-        println!(" + {}", acc);
-        let result = prev + acc;
-        println!(" = {}", result);
-        result
-    });
-
-    0
+    let result: SnailfishNumber = numbers.into_iter().sum::<SnailfishNumber>();
+    result.magnitude()
 }
 
-pub fn task2(_numbers: &[SnailfishNumber]) -> u64 {
-    0
+pub fn task2(numbers: &[SnailfishNumber]) -> u64 {
+    numbers
+        .iter()
+        .combinations(2)
+        .map(|items| {
+            std::cmp::max(
+                items
+                    .iter()
+                    .cloned()
+                    .cloned()
+                    .sum::<SnailfishNumber>()
+                    .magnitude(),
+                items
+                    .into_iter()
+                    .rev()
+                    .cloned()
+                    .sum::<SnailfishNumber>()
+                    .magnitude(),
+            )
+        })
+        .max()
+        .unwrap()
 }
 
 crate::aoc_tests! {
     task1: {
-        simple => 3488,
-        complex => 4140,
+        simple1 => 3488,
+        simple2 => 4140,
+        complex => 4124,
     },
     task2: {
-        simple => 0,
-        complex => 0,
+        simple2 => 3993,
+        complex => 4673,
     }
 }
