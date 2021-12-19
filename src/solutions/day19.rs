@@ -1,11 +1,10 @@
 use std::{
-    cmp::Reverse,
-    collections::{HashMap, HashSet},
+    collections::{hash_map::DefaultHasher, HashMap, HashSet},
+    hash::Hasher,
 };
 
-use itertools::Itertools;
-
-use crate::helpers::nested_iterator_chain::ChainNestedIterator;
+const SCANNER_RANGE: u32 = 1000;
+const LOCAL_NEIGHBOR_RANGE: u32 = 200;
 
 mod parser {
     use super::{Pos, Scanner};
@@ -18,8 +17,12 @@ mod parser {
         IResult,
     };
 
-    fn scanner_header(input: &str) -> IResult<&str, u64> {
-        delimited(tag("--- scanner "), u64, tuple((tag(" ---"), newline)))(input)
+    fn scanner_header(input: &str) -> IResult<&str, usize> {
+        delimited(
+            tag("--- scanner "),
+            map(u64, |id| id as usize),
+            tuple((tag(" ---"), newline)),
+        )(input)
     }
 
     fn scanner_beacon(input: &str) -> IResult<&str, Pos> {
@@ -47,102 +50,103 @@ pub fn parse_input(input_data: &str) -> Vec<Scanner> {
     scanners
 }
 
-fn get_distance_hash(p0: &Pos, p1: &Pos) -> u32 {
-    (p1.0 - p0.0).abs() as u32 + (p1.1 - p0.1).abs() as u32 + (p1.2 - p0.2).abs() as u32
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Pos(i32, i32, i32);
+
+#[derive(Debug, Clone)]
+pub struct Beacon {
+    pos: Pos,
+    seen_by: HashSet<usize>,
+    neighbor_hash: Option<u64>,
+}
 
 #[derive(Debug)]
 pub struct Scanner {
-    number: u64,
-    beacons: Vec<Pos>,
-    coords_per_axis: [Vec<i32>; 3],
-    coord_delta_histo_per_axis: [HashSet<u32>; 3],
+    id: usize,
+    beacons: Vec<Beacon>,
 }
-impl Scanner {
-    pub fn new((number, beacons): (u64, Vec<Pos>)) -> Self {
-        let mut coords_per_axis =
-            beacons
-                .iter()
-                .fold([Vec::new(), Vec::new(), Vec::new()], |mut dists, beacon| {
-                    dists[0].push(beacon.0);
-                    dists[1].push(beacon.1);
-                    dists[2].push(beacon.2);
-                    dists
-                });
 
-        coords_per_axis[0].sort();
-        coords_per_axis[1].sort();
-        coords_per_axis[2].sort();
-        coords_per_axis[0].dedup();
-        coords_per_axis[1].dedup();
-        coords_per_axis[2].dedup();
-
-        let coord_delta_histo_per_axis = [
-            coords_per_axis[0]
-                .windows(2)
-                .map(|elems| (elems[1] - elems[0]).abs() as u32)
-                .collect::<HashSet<_>>(),
-            coords_per_axis[1]
-                .windows(2)
-                .map(|elems| (elems[1] - elems[0]).abs() as u32)
-                .collect::<HashSet<_>>(),
-            coords_per_axis[2]
-                .windows(2)
-                .map(|elems| (elems[1] - elems[0]).abs() as u32)
-                .collect::<HashSet<_>>(),
-        ];
-        Self {
-            number,
-            beacons,
-            coords_per_axis,
-            coord_delta_histo_per_axis,
-        }
+fn distance_hash(p0: &Pos, p1: &Pos) -> Option<u64> {
+    let d0 = (p0.0 - p1.0).abs() as u32;
+    let d1 = (p0.1 - p1.1).abs() as u32;
+    let d2 = (p0.2 - p1.2).abs() as u32;
+    if d0 < LOCAL_NEIGHBOR_RANGE && d1 < LOCAL_NEIGHBOR_RANGE && d2 < LOCAL_NEIGHBOR_RANGE {
+        let d0 = d0 as u64;
+        let d1 = d1 as u64;
+        let d2 = d2 as u64;
+        Some(d0 * d0 + d1 * d1 + d2 * d2)
+    } else {
+        None
     }
+}
 
-    pub fn overlap_score(&self, other: &Scanner) -> (usize, (usize, usize, usize)) {
-        [
-            (0, 1, 2),
-            (0, 2, 1),
-            (1, 0, 2),
-            (1, 2, 0),
-            (2, 0, 1),
-            (2, 1, 0),
-        ]
-        .into_iter()
-        .map(|order| {
-            let score_0 = self.coord_delta_histo_per_axis[0]
-                .union(&other.coord_delta_histo_per_axis[order.0])
-                .count();
-            let score_1 = self.coord_delta_histo_per_axis[1]
-                .union(&other.coord_delta_histo_per_axis[order.1])
-                .count();
-            let score_2 = self.coord_delta_histo_per_axis[2]
-                .union(&other.coord_delta_histo_per_axis[order.2])
-                .count();
-            (score_0 + score_1 + score_2, order)
-        })
-        .max_by_key(|(key, _)| *key)
-        .unwrap_or((0, (0, 0, 0)))
+impl Scanner {
+    pub fn new((id, beacons): (usize, Vec<Pos>)) -> Self {
+        let beacons = beacons
+            .iter()
+            .map(|pos| {
+                let neighbor_hash = if pos.0.abs() as u32 + LOCAL_NEIGHBOR_RANGE < SCANNER_RANGE
+                    && pos.1.abs() as u32 + LOCAL_NEIGHBOR_RANGE < SCANNER_RANGE
+                    && pos.2.abs() as u32 + LOCAL_NEIGHBOR_RANGE < SCANNER_RANGE
+                {
+                    let mut neighbor_distances = beacons
+                        .iter()
+                        .filter_map(|other| distance_hash(&pos, other))
+                        .filter(|&dist| dist != 0)
+                        .collect::<Vec<_>>();
+
+                    if neighbor_distances.len() < 2 {
+                        None
+                    } else {
+                        neighbor_distances.sort();
+
+                        let mut hasher = DefaultHasher::new();
+                        for distance in &neighbor_distances {
+                            hasher.write_u64(*distance);
+                        }
+                        let hash = hasher.finish();
+                        println!("Hash: {} => {:?}", hash, neighbor_distances);
+                        Some(hash)
+                    }
+                } else {
+                    None
+                };
+
+                Beacon {
+                    pos: pos.clone(),
+                    seen_by: HashSet::from([id]),
+                    neighbor_hash,
+                }
+            })
+            .collect::<Vec<_>>();
+        Self { id, beacons }
     }
 }
 
 pub fn task1(scanners: &[Scanner]) -> u64 {
-    for ((score, alignment), scanner1, scanner2) in scanners
-        .iter()
-        .tuple_combinations()
-        .map(|(left, right)| {
-            let score = left.overlap_score(right);
-            (score, left, right)
-        })
-        .sorted_by_key(|t| Reverse(t.0))
-    {
-        println!(
-            "Score: {}, ({}, {}) - align: ({:?})",
-            score, scanner1.number, scanner2.number, alignment
-        );
+    let mut potential_mappings = HashMap::new();
+
+    for scanner in scanners {
+        println!("SCANNER: {}", scanner.id);
+        for beacon in &scanner.beacons {
+            println!("  - {:?}: {:?}", beacon.pos, beacon.neighbor_hash);
+
+            if let Some(hash) = beacon.neighbor_hash {
+                potential_mappings
+                    .entry(hash)
+                    .or_insert_with(|| HashSet::new())
+                    .insert(scanner.id);
+            }
+        }
+        println!();
+    }
+
+    println!("{:?}", potential_mappings);
+
+    let mut unknown_scanners = (1..scanners.len()).collect::<HashSet<_>>();
+
+    while !unknown_scanners.is_empty() {
+        return 0;
     }
 
     0
