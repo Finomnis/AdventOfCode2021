@@ -186,7 +186,11 @@ pub fn parse_input(input_data: &str) -> Vec<SnailfishNumber> {
     input_data
         .trim()
         .lines()
-        .map(|line| parser::snailfish_number(line.trim()).map(|e| e.1).unwrap())
+        .map(|line| {
+            parser::snailfish_number(line.trim())
+                .map(|(_, num)| num)
+                .unwrap()
+        })
         .collect()
 }
 
