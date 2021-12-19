@@ -346,8 +346,8 @@ pub fn task2(_scanners: &[Scanner]) -> u64 {
 
 crate::aoc_tests! {
     task1: {
-        simple => 0,
-        complex => 0,
+        simple => 79,
+        complex => 378,
     },
     task2: {
         simple => 0,
