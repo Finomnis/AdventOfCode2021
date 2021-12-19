@@ -1,5 +1,5 @@
 mod parser {
-    use super::SnailfishNumber;
+    use super::{SnailfishMember, SnailfishNumber};
     use nom::{
         branch::alt,
         bytes::complete::tag,
@@ -9,68 +9,71 @@ mod parser {
         IResult,
     };
 
-    pub fn regular(input: &str) -> IResult<&str, SnailfishNumber> {
-        map(u64, SnailfishNumber::regular)(input)
-    }
-
-    pub fn member(input: &str) -> IResult<&str, SnailfishNumber> {
-        alt((regular, snailfish_number))(input)
+    pub fn member(input: &str) -> IResult<&str, SnailfishMember> {
+        alt((
+            map(u64, SnailfishMember::regular),
+            map(snailfish_number, SnailfishMember::nested),
+        ))(input)
     }
 
     pub fn snailfish_number(input: &str) -> IResult<&str, SnailfishNumber> {
         map(
             delimited(tag("["), separated_pair(member, tag(","), member), tag("]")),
-            SnailfishNumber::pair,
+            |(first, second)| SnailfishNumber(first, second),
         )(input)
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum SnailfishNumber {
+pub enum SnailfishMember {
     Regular(u64),
-    Pair(Box<SnailfishNumber>, Box<SnailfishNumber>),
+    Nested(Box<SnailfishNumber>),
 }
-
-impl SnailfishNumber {
+impl SnailfishMember {
     pub fn regular(num: u64) -> Self {
         Self::Regular(num)
     }
-    pub fn pair((left, right): (SnailfishNumber, SnailfishNumber)) -> Self {
-        Self::Pair(Box::new(left), Box::new(right))
+    pub fn nested(num: SnailfishNumber) -> Self {
+        Self::Nested(Box::new(num))
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct SnailfishNumber(SnailfishMember, SnailfishMember);
 
 impl std::fmt::Display for SnailfishNumber {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SnailfishNumber::Regular(num) => write!(f, "{}", num),
-            SnailfishNumber::Pair(left, right) => write!(f, "[{},{}]", left, right),
-        }
+        write!(
+            f,
+            "[{},{}]",
+            match &self.0 {
+                SnailfishMember::Regular(num) => format!("{}", num),
+                SnailfishMember::Nested(num) => format!("{}", num),
+            },
+            match &self.1 {
+                SnailfishMember::Regular(num) => format!("{}", num),
+                SnailfishMember::Nested(num) => format!("{}", num),
+            }
+        )
     }
 }
 
-// pub enum ReduceResult {
-//     Ok,
-//     NeedsExplode(u64, SnailfishNumberElement, u64)
-// }
+pub enum ReduceResult {
+    Ok(SnailfishNumber),
+}
 
-// impl SnailfishNumber {
-//     pub fn reduce(mut self) -> Self {
+//  impl SnailfishNumber {
+//     pub fn reduce(&mut self) -> Self {
 //         match self.reduce_impl(0) {
-//             ReduceResult::Ok => (),
-//             ReduceResult::NeedsExplode(_, _, _) => todo!(),
+//             ReduceResult::Ok(red)
 //         }
 //         self
 //     }
 
 //     pub fn reduce_impl(&mut self, depth: usize) -> ReduceResult {
-//         if let SnailfishNumber(
-//             SnailfishNumberElement::Regular(left),
-//             SnailfishNumberElement::Regular(right),
-//         ) = &self
-//         {
-//             if depth > 4 {
-//                 println!("Explode {}, {}", left, right);
+//         if self.depth >= 4 {
+//             if is_regular_pair {
+
 //             }
 //         }
 
@@ -80,33 +83,13 @@ impl std::fmt::Display for SnailfishNumber {
 //     }
 // }
 
-// impl SnailfishNumberElement {
-//     pub fn reduce(self, depth: usize) -> (Self, ReduceResult) {}
-// }
+impl std::ops::Add for SnailfishNumber {
+    type Output = Self;
 
-// impl std::ops::Add for SnailfishNumber {
-//     type Output = Self;
-
-//     fn add(self, rhs: Self) -> Self::Output {
-//         SnailfishNumber(
-//             SnailfishNumberElement::snailfish(self),
-//             SnailfishNumberElement::snailfish(rhs),
-//         )
-//         .reduce()
-//     }
-// }
-
-// impl<'a, 'b> std::ops::Add<&'b SnailfishNumber> for &'a SnailfishNumber {
-//     type Output = SnailfishNumber;
-
-//     fn add(self, rhs: &'b SnailfishNumber) -> Self::Output {
-//         SnailfishNumber(
-//             SnailfishNumberElement::snailfish(self.clone()),
-//             SnailfishNumberElement::snailfish(rhs.clone()),
-//         )
-//         .reduce()
-//     }
-// }
+    fn add(self, rhs: Self) -> Self::Output {
+        SnailfishNumber(SnailfishMember::nested(self), SnailfishMember::nested(rhs))
+    }
+}
 
 pub fn parse_input(input_data: &str) -> Vec<SnailfishNumber> {
     input_data
