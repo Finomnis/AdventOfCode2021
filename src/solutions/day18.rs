@@ -58,36 +58,120 @@ impl std::fmt::Display for SnailfishNumber {
     }
 }
 
+#[must_use = "Results of the reduce step actually need to be processed."]
 pub enum ReduceResult {
-    Ok(SnailfishNumber),
+    Ok,
+    Changed,
+    Exploded(u64, u64),
+    PropagateLeft(u64),
+    PropagateRight(u64),
 }
 
-//  impl SnailfishNumber {
-//     pub fn reduce(&mut self) -> Self {
-//         match self.reduce_impl(0) {
-//             ReduceResult::Ok(red)
-//         }
-//         self
-//     }
+pub fn split_number(num: u64) -> SnailfishNumber {
+    SnailfishNumber(
+        SnailfishMember::regular(num / 2),
+        SnailfishMember::regular((num + 1) / 2),
+    )
+}
 
-//     pub fn reduce_impl(&mut self, depth: usize) -> ReduceResult {
-//         if self.depth >= 4 {
-//             if is_regular_pair {
+impl SnailfishMember {
+    pub fn propagate_left(&mut self, propagated: u64) {
+        match self {
+            SnailfishMember::Regular(num) => *num += propagated,
+            SnailfishMember::Nested(nested) => nested.1.propagate_left(propagated),
+        }
+    }
+    pub fn propagate_right(&mut self, propagated: u64) {
+        match self {
+            SnailfishMember::Regular(num) => *num += propagated,
+            SnailfishMember::Nested(nested) => nested.0.propagate_right(propagated),
+        }
+    }
+}
 
-//             }
-//         }
+impl SnailfishNumber {
+    /// Reduces the number.
+    ///
+    /// Return 'false' if no further reduction is required
+    pub fn reduce(&mut self) -> bool {
+        match self.reduce_impl(0) {
+            ReduceResult::Ok => false,
+            ReduceResult::Changed => true,
+            ReduceResult::Exploded(_, _) => panic!("Toplevel items should never explode"),
+            ReduceResult::PropagateLeft(_) => true,
+            ReduceResult::PropagateRight(_) => true,
+        }
+    }
 
-//         self.0.reduce(depth)
+    pub fn reduce_impl(&mut self, depth: usize) -> ReduceResult {
+        if depth >= 4 {
+            if let SnailfishNumber(
+                SnailfishMember::Regular(left),
+                SnailfishMember::Regular(right),
+            ) = &self
+            {
+                return ReduceResult::Exploded(*left, *right);
+            }
+        }
 
-//         ReduceResult::NoActionNeeded(self)
-//     }
-// }
+        match &mut self.0 {
+            SnailfishMember::Regular(num) => {
+                if *num > 9 {
+                    self.0 = SnailfishMember::nested(split_number(*num));
+                    return ReduceResult::Changed;
+                }
+            }
+            SnailfishMember::Nested(nested) => match nested.reduce_impl(depth + 1) {
+                ReduceResult::Ok => (),
+                ReduceResult::Exploded(left, right) => {
+                    self.0 = SnailfishMember::regular(0);
+                    self.1.propagate_right(right);
+                    return ReduceResult::PropagateLeft(left);
+                }
+                ReduceResult::PropagateRight(propagated) => {
+                    self.1.propagate_right(propagated);
+                    return ReduceResult::Changed;
+                }
+                result => return result,
+            },
+        }
+
+        match &mut self.1 {
+            SnailfishMember::Regular(num) => {
+                if *num > 9 {
+                    self.1 = SnailfishMember::nested(split_number(*num));
+                    return ReduceResult::Changed;
+                }
+            }
+            SnailfishMember::Nested(nested) => match nested.reduce_impl(depth + 1) {
+                ReduceResult::Ok => (),
+                ReduceResult::Exploded(left, right) => {
+                    self.1 = SnailfishMember::regular(0);
+                    self.0.propagate_left(left);
+                    return ReduceResult::PropagateRight(right);
+                }
+                ReduceResult::PropagateLeft(propagated) => {
+                    self.0.propagate_left(propagated);
+                    return ReduceResult::Changed;
+                }
+                result => return result,
+            },
+        }
+
+        ReduceResult::Ok
+    }
+}
 
 impl std::ops::Add for SnailfishNumber {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        SnailfishNumber(SnailfishMember::nested(self), SnailfishMember::nested(rhs))
+        let mut result =
+            SnailfishNumber(SnailfishMember::nested(self), SnailfishMember::nested(rhs));
+        while result.reduce() {
+            println!("{}", result);
+        }
+        result
     }
 }
 
@@ -102,15 +186,16 @@ pub fn parse_input(input_data: &str) -> Vec<SnailfishNumber> {
 pub fn task1(numbers: &[SnailfishNumber]) -> u64 {
     let numbers = numbers.to_vec();
 
-    for number in numbers {
+    for number in &numbers {
         println!("{}", number);
     }
-    // numbers.into_iter().reduce(|prev, acc| {
-    //     print!("{} + {} = ", prev, acc);
-    //     let result = prev + acc;
-    //     println!("{}", result);
-    //     result
-    // });
+
+    numbers.into_iter().reduce(|prev, acc| {
+        println!("Computing {} + {} ...", prev, acc);
+        let result = prev + acc;
+        println!("  ... result: {}", result);
+        result
+    });
 
     0
 }
