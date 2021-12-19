@@ -1,8 +1,6 @@
 use num::Unsigned;
 use std::fmt::Write;
 
-use crate::helpers::nested_iterator_chain::ChainNestedIterator;
-
 pub fn parse_input(input_data: &str) -> &str {
     input_data
 }
@@ -177,7 +175,7 @@ mod parse {
 }
 
 fn hex_to_binary_stream(input_data: &str) -> impl Iterator<Item = bool> + '_ {
-    input_data.trim().chars().chain_nested_iterator(|ch| {
+    input_data.trim().chars().flat_map(|ch| {
         [
             matches!(ch, '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F'),
             matches!(ch, '4' | '5' | '6' | '7' | 'C' | 'D' | 'E' | 'F'),

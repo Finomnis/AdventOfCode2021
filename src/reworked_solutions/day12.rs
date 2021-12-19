@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 
-use crate::helpers::nested_iterator_chain::ChainNestedIterator;
 use crate::helpers::temporary_hashset::HashSetExt;
 
 #[derive(Debug)]
@@ -16,7 +15,7 @@ pub fn parse_input(input_data: &str) -> Vec<GraphNode> {
     let mut nodes = input_data
         .trim()
         .lines()
-        .chain_nested_iterator(|e| e.split('-'))
+        .flat_map(|e| e.split('-'))
         .unique()
         .enumerate()
         .map(|(id, name)| {

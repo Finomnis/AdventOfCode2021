@@ -4,8 +4,6 @@ use ndarray::Array2;
 use rgb::RGBA8;
 use webp_animation::Encoder;
 
-use crate::helpers::nested_iterator_chain::ChainNestedIterator;
-
 use super::common::map_to_image;
 
 pub struct WebpCollector {
@@ -29,7 +27,7 @@ impl super::Writer for WebpWriter {
                     .unwrap();
             let bytes = initial_frame
                 .pixels()
-                .chain_nested_iterator(|pixel| [pixel.r, pixel.g, pixel.b, pixel.a].into_iter())
+                .flat_map(|pixel| [pixel.r, pixel.g, pixel.b, pixel.a].into_iter())
                 .collect::<Vec<_>>();
 
             let mut newest_timestamp = (initial_timestamp * 1000.0).round() as i32;
@@ -39,7 +37,7 @@ impl super::Writer for WebpWriter {
             for (frame, timestamp) in frame_iter {
                 let bytes = frame
                     .pixels()
-                    .chain_nested_iterator(|pixel| [pixel.r, pixel.g, pixel.b, pixel.a].into_iter())
+                    .flat_map(|pixel| [pixel.r, pixel.g, pixel.b, pixel.a].into_iter())
                     .collect::<Vec<_>>();
                 newest_timestamp = (timestamp * 1000.0).round() as i32;
                 encoder.add_frame(&bytes, newest_timestamp).unwrap();

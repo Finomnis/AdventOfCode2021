@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use regex::Regex;
 
-use crate::helpers::nested_iterator_chain::ChainNestedIterator;
-
 #[derive(Debug)]
 pub struct PuzzleInput {
     start: String,
@@ -75,15 +73,15 @@ pub fn task2(input_data: &PuzzleInput) -> usize {
     for _ in 0..40 {
         pair_histo = pair_histo
             .iter()
-            .chain_nested_iterator(|(&(left, right), &count)| {
-                match input_data.rules.get(&(left, right)) {
+            .flat_map(
+                |(&(left, right), &count)| match input_data.rules.get(&(left, right)) {
                     Some(&middle) => {
                         *letter_histo.entry(middle).or_insert(0) += count;
                         vec![((left, middle), count), ((middle, right), count)].into_iter()
                     }
                     None => vec![((left, right), count)].into_iter(),
-                }
-            })
+                },
+            )
             .into_grouping_map()
             .sum();
 

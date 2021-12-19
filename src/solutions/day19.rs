@@ -5,8 +5,6 @@ use std::{
 
 use itertools::Itertools;
 
-use crate::helpers::nested_iterator_chain::ChainNestedIterator;
-
 const SCANNER_RANGE: u32 = 1000;
 const LOCAL_NEIGHBOR_RANGE: u32 = 200;
 
@@ -177,7 +175,7 @@ const POSSIBLE_ROTATION_FLIPS: [(bool, bool, bool); 4] = [
 fn possible_rotations() -> impl Iterator<Item = Rotation> {
     POSSIBLE_BASE_ROTATIONS
         .iter()
-        .chain_nested_iterator(|&(base_rot, base_flip)| {
+        .flat_map(|&(base_rot, base_flip)| {
             POSSIBLE_ROTATION_FLIPS.iter().map(move |flip| Rotation {
                 mapping: base_rot,
                 flips: (base_flip ^ flip.0, base_flip ^ flip.1, base_flip ^ flip.2),

@@ -1,6 +1,5 @@
 pub mod accu_iter;
 pub mod input_parsing;
-pub mod nested_iterator_chain;
 pub mod rendering;
 pub mod temporary_hashset;
 
