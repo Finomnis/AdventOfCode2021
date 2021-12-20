@@ -116,14 +116,14 @@ impl Scanner {
                 {
                     let mut neighbor_distances = beacons
                         .iter()
-                        .filter_map(|other| distance_hash(&pos, other))
+                        .filter_map(|other| distance_hash(pos, other))
                         .filter(|&dist| dist != 0)
                         .collect::<Vec<_>>();
 
                     if neighbor_distances.len() < 2 {
                         None
                     } else {
-                        neighbor_distances.sort();
+                        neighbor_distances.sort_unstable();
 
                         let mut hasher = DefaultHasher::new();
                         for distance in &neighbor_distances {
@@ -280,7 +280,7 @@ pub fn get_all_beacons_and_scanners(scanners: &[Scanner]) -> (Vec<Pos>, Vec<Pos>
             if let Some(hash) = beacon.neighbor_hash {
                 hashed_beacons
                     .entry(hash)
-                    .or_insert_with(|| HashSet::new())
+                    .or_insert_with(HashSet::new)
                     .insert(scanner.id);
             }
         }
