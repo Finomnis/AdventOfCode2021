@@ -63,6 +63,46 @@ pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
 }
 
 #[allow(dead_code)]
+pub fn parse_as_2d_matrix_with_filled_border<T: Clone + FromStr + Debug>(
+    input_data: &str,
+    border_size: usize,
+    border_value: T,
+) -> Result<Array2<T>, ParseError> {
+    let input_data = input_data.trim();
+
+    let (width, height) = get_2d_matrix_width_height(input_data);
+
+    let mut matrix: Array2<T> = Array::from_elem(
+        (height + border_size * 2, width + border_size * 2),
+        border_value,
+    );
+
+    let mut borderless = matrix.slice_mut(s![
+        border_size..height + border_size,
+        border_size..=width + border_size
+    ]);
+
+    input_data
+        .lines()
+        .zip(borderless.axis_iter_mut(Axis(0)))
+        .try_for_each(|(in_line, mut out_line)| {
+            in_line
+                .trim()
+                .chars()
+                .map(|c| c.to_string())
+                .zip(out_line.iter_mut())
+                .try_for_each(|(in_el, out_el)| {
+                    *out_el = in_el
+                        .parse::<T>()
+                        .map_err(|_| ParseError(format!("Unable to parse '{}'!", in_el)))?;
+                    Ok(())
+                })
+        })?;
+
+    Ok(matrix)
+}
+
+#[allow(dead_code)]
 pub fn parse_as_2d_matrix<T: Clone + FromStr + Debug>(
     input_data: &str,
 ) -> Result<Array2<T>, ParseError> {
