@@ -37,11 +37,11 @@ pub fn enhance(image: &Array2<char>, enhancement_lookup: &[char]) -> Array2<char
 pub fn task1(input_data: &PuzzleInput) -> usize {
     let image = input_data.image.clone();
     let enhancement_lookup = &input_data.enhancement_lookup;
-    println!("{:?}", image);
+    //println!("{:?}", image);
     let image = enhance(&image, enhancement_lookup);
-    println!("{:?}", image);
+    //println!("{:?}", image);
     let image = enhance(&image, enhancement_lookup);
-    println!("{:?}", image);
+    //println!("{:?}", image);
 
     image.iter().filter(|&el| *el == '#').count()
 }
