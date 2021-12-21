@@ -14,8 +14,8 @@ pub fn parse_input(input_data: &str) -> (u32, u32) {
         .unwrap()
 }
 
-#[derive(Clone, Copy, Debug)]
-enum Turn {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Turn {
     Player0,
     Player1,
 }
@@ -66,7 +66,8 @@ pub fn dirac_dice() -> impl Iterator<Item = u32> {
     [1, 2, 3].into_iter()
 }
 
-pub fn task2(&input_data: &(u32, u32)) -> u64 {
+#[allow(dead_code)]
+pub fn task2_slow(&input_data: &(u32, u32)) -> u64 {
     let mut universe_count = HashMap::from([((input_data, (0, 0)), 1)]);
 
     let mut player_turn = Turn::Player0;
@@ -96,10 +97,10 @@ pub fn task2(&input_data: &(u32, u32)) -> u64 {
                 })
             })
             .filter(|((_, score), count)| {
-                if score.0 >= 21 {
+                if score.0 >= SCORE_MAX {
                     wins_player_0 += count;
                     false
-                } else if score.1 >= 21 {
+                } else if score.1 >= SCORE_MAX {
                     wins_player_1 += count;
                     false
                 } else {
@@ -113,7 +114,124 @@ pub fn task2(&input_data: &(u32, u32)) -> u64 {
         //println!("{:?}", universe_count);
     }
 
+    println!("Player0 wins: {}", wins_player_0);
+    println!("Player1 wins: {}", wins_player_1);
+
     wins_player_0
+}
+
+const SCORE_MAX: u32 = 21;
+const TOTAL_SCORES: usize = 2 * 10 * 10 * ((SCORE_MAX * SCORE_MAX) as usize);
+
+#[derive(Eq, PartialEq)]
+pub struct TurnState {
+    field: (u32, u32),
+    score: (u32, u32),
+    turn: Turn,
+}
+
+impl TurnState {
+    pub fn new(field: (u32, u32), score: (u32, u32), turn: Turn) -> Self {
+        Self { field, score, turn }
+    }
+
+    pub fn index(&self) -> usize {
+        ((match self.turn {
+            Turn::Player0 => 0,
+            Turn::Player1 => 1,
+        }) + (self.field.0 - 1) * 2
+            + (self.field.1 - 1) * 2 * 10
+            + self.score.0 * 2 * 10 * 10
+            + self.score.1 * 2 * 10 * 10 * SCORE_MAX) as usize
+    }
+}
+
+pub struct UniverseCounter {
+    count: [u64; TOTAL_SCORES],
+}
+
+impl UniverseCounter {
+    pub fn new() -> Self {
+        Self {
+            count: [0u64; TOTAL_SCORES],
+        }
+    }
+
+    pub fn get(&mut self, score: (u32, u32), field: (u32, u32), turn: Turn) -> &mut u64 {
+        &mut self.count[TurnState::new(field, score, turn).index()]
+    }
+}
+
+pub fn dirac_dice_combinations() -> impl Iterator<Item = (u32, u64)> {
+    [(0, 1), (1, 3), (2, 6), (3, 7), (4, 6), (5, 3), (6, 1)].into_iter()
+}
+
+pub fn task2(&input_data: &(u32, u32)) -> u64 {
+    let mut universe_counter = UniverseCounter::new();
+
+    *universe_counter.get((0, 0), input_data, Turn::Player0) = 1;
+
+    let mut player0_wins: u64 = 0;
+    let mut player1_wins: u64 = 0;
+
+    for score0 in 0..SCORE_MAX {
+        for score1 in 0..SCORE_MAX {
+            for field0 in 1..=10 {
+                for field1 in 1..=10 {
+                    {
+                        let universe_count = *universe_counter.get(
+                            (score0, score1),
+                            (field0, field1),
+                            Turn::Player0,
+                        );
+
+                        for (dice, dice_count) in dirac_dice_combinations() {
+                            let field0 = (field0 + dice + 9) % 10 + 1;
+                            let score0 = score0 + field0;
+                            if score0 >= SCORE_MAX {
+                                player0_wins += dice_count * universe_count;
+                            } else {
+                                *universe_counter.get(
+                                    (score0, score1),
+                                    (field0, field1),
+                                    Turn::Player1,
+                                ) += dice_count * universe_count;
+                            }
+                        }
+                    }
+
+                    {
+                        let universe_count = *universe_counter.get(
+                            (score0, score1),
+                            (field0, field1),
+                            Turn::Player1,
+                        );
+
+                        for (dice, dice_count) in dirac_dice_combinations() {
+                            let field1 = (field1 + dice + 9) % 10 + 1;
+                            let score1 = score1 + field1;
+                            if score1 >= SCORE_MAX {
+                                player1_wins += dice_count * universe_count;
+                            } else {
+                                *universe_counter.get(
+                                    (score0, score1),
+                                    (field0, field1),
+                                    Turn::Player0,
+                                ) += dice_count * universe_count;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    println!("Player0 wins: {}", player0_wins);
+    println!("Player1 wins: {}", player1_wins);
+
+    s
+
+    0
 }
 
 crate::aoc_tests! {
