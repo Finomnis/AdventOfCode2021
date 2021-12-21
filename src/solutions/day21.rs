@@ -1,7 +1,4 @@
-use std::{
-    cmp::{max, min},
-    collections::HashMap,
-};
+use std::cmp::{max, min};
 
 use itertools::Itertools;
 
@@ -62,11 +59,11 @@ pub fn task1(&input_data: &(u32, u32)) -> u32 {
     min(player_scores.0, player_scores.1) * num_rolls
 }
 
+/*
 pub fn dirac_dice() -> impl Iterator<Item = u32> {
     [1, 2, 3].into_iter()
 }
 
-#[allow(dead_code)]
 pub fn task2_slow(&input_data: &(u32, u32)) -> u64 {
     let mut universe_count = HashMap::from([((input_data, (0, 0)), 1)]);
 
@@ -114,11 +111,12 @@ pub fn task2_slow(&input_data: &(u32, u32)) -> u64 {
         //println!("{:?}", universe_count);
     }
 
-    println!("Player0 wins: {}", wins_player_0);
-    println!("Player1 wins: {}", wins_player_1);
+    // println!("Player0 wins: {}", wins_player_0);
+    // println!("Player1 wins: {}", wins_player_1);
 
     wins_player_0
 }
+*/
 
 const SCORE_MAX: u32 = 21;
 const TOTAL_SCORES: usize = 2 * 10 * 10 * ((SCORE_MAX * SCORE_MAX) as usize);
@@ -163,7 +161,7 @@ impl UniverseCounter {
 }
 
 pub fn dirac_dice_combinations() -> impl Iterator<Item = (u32, u64)> {
-    [(0, 1), (1, 3), (2, 6), (3, 7), (4, 6), (5, 3), (6, 1)].into_iter()
+    [(3, 1), (4, 3), (5, 6), (6, 7), (7, 6), (8, 3), (9, 1)].into_iter()
 }
 
 pub fn task2(&input_data: &(u32, u32)) -> u64 {
@@ -172,7 +170,7 @@ pub fn task2(&input_data: &(u32, u32)) -> u64 {
     *universe_counter.get((0, 0), input_data, Turn::Player0) = 1;
 
     let mut player0_wins: u64 = 0;
-    let mut player1_wins: u64 = 0;
+    //let mut player1_wins: u64 = 0;
 
     for score0 in 0..SCORE_MAX {
         for score1 in 0..SCORE_MAX {
@@ -211,7 +209,7 @@ pub fn task2(&input_data: &(u32, u32)) -> u64 {
                             let field1 = (field1 + dice + 9) % 10 + 1;
                             let score1 = score1 + field1;
                             if score1 >= SCORE_MAX {
-                                player1_wins += dice_count * universe_count;
+                                //player1_wins += dice_count * universe_count;
                             } else {
                                 *universe_counter.get(
                                     (score0, score1),
@@ -226,12 +224,10 @@ pub fn task2(&input_data: &(u32, u32)) -> u64 {
         }
     }
 
-    println!("Player0 wins: {}", player0_wins);
-    println!("Player1 wins: {}", player1_wins);
+    // println!("Player0 wins: {}", player0_wins);
+    // println!("Player1 wins: {}", player1_wins);
 
-    s
-
-    0
+    player0_wins
 }
 
 crate::aoc_tests! {
