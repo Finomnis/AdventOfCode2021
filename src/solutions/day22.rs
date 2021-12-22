@@ -1,6 +1,9 @@
 use ndarray::Array3;
 use regex::Regex;
-use std::ops::RangeInclusive;
+use std::{
+    cmp::{max, min},
+    ops::RangeInclusive,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ReactorState {
@@ -24,7 +27,26 @@ impl Cuboid {
     }
 
     pub fn overlap(&self, action: &Cuboid) -> Option<Cuboid> {
-        None
+        let x_start = max(self.x.start(), action.x.start());
+        let x_end = min(self.x.end(), action.x.end());
+        let y_start = max(self.y.start(), action.y.start());
+        let y_end = min(self.y.end(), action.y.end());
+        let z_start = max(self.z.start(), action.z.start());
+        let z_end = min(self.z.end(), action.z.end());
+
+        if x_start > x_end || y_start > y_end || z_start > z_end {
+            None
+        } else {
+            Some(Cuboid {
+                x: *x_start..=*x_end,
+                y: *y_start..=*y_end,
+                z: *z_start..=*z_end,
+                state: match self.state {
+                    ReactorState::ON => ReactorState::OFF,
+                    ReactorState::OFF => ReactorState::ON,
+                },
+            })
+        }
     }
 }
 
@@ -56,7 +78,7 @@ pub fn parse_input(input_data: &str) -> Vec<Cuboid> {
 pub fn task1(input_data: &[Cuboid]) -> u64 {
     let mut reactor = Array3::from_shape_simple_fn((101, 101, 101), || 0);
 
-    for (step, command) in input_data.iter().take(2).enumerate() {
+    for (_step, command) in input_data.iter().enumerate() {
         let x_start = (command.x.start() + 50).clamp(0, 101);
         let x_end = (command.x.end() + 51).clamp(0, 101);
         let y_start = (command.y.start() + 50).clamp(0, 101);
@@ -72,7 +94,7 @@ pub fn task1(input_data: &[Cuboid]) -> u64 {
             ReactorState::OFF => 0,
         });
 
-        println!("{}: {}", step, reactor.sum());
+        //println!("{}: {}", _step, reactor.sum());
     }
 
     reactor.sum()
@@ -101,7 +123,7 @@ impl Reactor {
             .filter_map(|part| part.overlap(cuboid))
             .collect::<Vec<_>>();
 
-        println!("Removing overlaps: {:?}", overlaps);
+        //println!("Removing overlaps: {:?}", overlaps);
 
         self.parts.extend(overlaps);
     }
@@ -118,12 +140,12 @@ impl Reactor {
 pub fn task2(input_data: &[Cuboid]) -> u64 {
     let mut reactor = Reactor::new();
 
-    for (step, action) in input_data.iter().take(2).enumerate() {
+    for (_step, action) in input_data.iter().enumerate() {
         reactor.perform_action(action);
-        println!("{}: {}", step, reactor.count_cells());
+        //println!("{}: {}", _step, reactor.count_cells());
     }
 
-    0
+    reactor.count_cells()
 }
 
 crate::aoc_tests! {
@@ -133,7 +155,7 @@ crate::aoc_tests! {
         complex => 543306,
     },
     task2: {
-        simple2 => 0,
-        complex => 0,
+        simple2 => 2758514936282235,
+        complex => 1285501151402480,
     }
 }
