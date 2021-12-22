@@ -37,6 +37,7 @@ reworked_solutions! {
     (day12, task1, task2)
     (day16, task1, task2)
     (day17, task1, task2)
+    (day22, task1, task2)
 }
 
 // DAILY: Add new renderers here
