@@ -70,11 +70,12 @@ pub fn task2(_input_data: &[CuboidAction]) -> u64 {
 
 crate::aoc_tests! {
     task1: {
-        simple => 590784,
+        simple1 => 590784,
+        simple2 => 474140,
         complex => 543306,
     },
     task2: {
-        simple => 0,
+        simple2 => 0,
         complex => 0,
     }
 }
