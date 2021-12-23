@@ -1,8 +1,11 @@
-use std::fmt::Display;
+use std::{
+    collections::{BinaryHeap, HashMap},
+    fmt::Display,
+};
 
 use itertools::Itertools;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Amphipod {
     A,
     B,
@@ -39,7 +42,7 @@ impl Amphipod {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum HallwayTile {
     Unoccupiable,
     Occupiable(Option<Amphipod>),
@@ -59,19 +62,18 @@ impl Display for HallwayTile {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Chamber {
     content: (Option<Amphipod>, Option<Amphipod>),
-    pos: usize,
 }
 
 impl Chamber {
-    pub fn new(content: (Option<Amphipod>, Option<Amphipod>), pos: usize) -> Self {
-        Self { content, pos }
+    pub fn new(content: (Option<Amphipod>, Option<Amphipod>)) -> Self {
+        Self { content }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct GameState {
     hallway: [HallwayTile; 11],
     chambers: [Chamber; 4],
@@ -133,10 +135,10 @@ pub fn parse_input(input_data: &str) -> GameState {
     let mut chamber_inputs = line1.zip(line2);
 
     let chambers = [
-        Chamber::new(chamber_inputs.next().unwrap(), 2),
-        Chamber::new(chamber_inputs.next().unwrap(), 4),
-        Chamber::new(chamber_inputs.next().unwrap(), 6),
-        Chamber::new(chamber_inputs.next().unwrap(), 8),
+        Chamber::new(chamber_inputs.next().unwrap()),
+        Chamber::new(chamber_inputs.next().unwrap()),
+        Chamber::new(chamber_inputs.next().unwrap()),
+        Chamber::new(chamber_inputs.next().unwrap()),
     ];
 
     let hallway = [
@@ -156,11 +158,65 @@ pub fn parse_input(input_data: &str) -> GameState {
     GameState { chambers, hallway }
 }
 
-pub fn task1(input_data: &GameState) -> u64 {
-    println!("{}", input_data);
+#[derive(Eq, PartialEq)]
+pub struct GamePathElement {
+    cost: u32,
+    state: GameState,
+    parent: Option<GameState>,
+}
+
+impl Ord for GamePathElement {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.cost.cmp(&other.cost)
+    }
+}
+
+impl PartialOrd for GamePathElement {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl GamePathElement {
+    pub fn new(state: GameState, parent: Option<GameState>, cost: u32) -> Self {
+        Self {
+            state,
+            parent,
+            cost,
+        }
+    }
+}
+
+pub fn get_follow_up_states(game_state: &GameState) -> impl Iterator<Item = (u32, GameState)> {
+    vec![].into_iter()
+}
+
+pub fn task1(input_state: &GameState) -> u64 {
+    let mut solved_game_states: HashMap<GameState, Option<GameState>> = HashMap::new();
+    let mut cheapest_positions: BinaryHeap<GamePathElement> = BinaryHeap::new();
+
+    cheapest_positions.push(GamePathElement::new(input_state.clone(), None, 0));
+
+    while let Some(current_path) = cheapest_positions.pop() {
+        match solved_game_states.entry(current_path.state.clone()) {
+            std::collections::hash_map::Entry::Occupied(_) => continue,
+            std::collections::hash_map::Entry::Vacant(e) => e.insert(current_path.parent),
+        };
+
+        for (cost, follow_up_state) in get_follow_up_states(&current_path.state) {
+            let total_cost = cost + current_path.cost;
+            cheapest_positions.push(GamePathElement::new(
+                follow_up_state,
+                Some(current_path.state.clone()),
+                total_cost,
+            ));
+        }
+    }
+
+    println!("{}", input_state);
     0
 }
 
-pub fn task2(input_data: &GameState) -> u64 {
+pub fn task2(_input_data: &GameState) -> u64 {
     0
 }
