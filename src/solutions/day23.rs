@@ -94,16 +94,6 @@ impl GameState {
         2 * id as usize + 2
     }
 
-    pub fn chamber_position_to_id(offset: usize) -> Option<usize> {
-        match offset {
-            2 => Some(0),
-            4 => Some(1),
-            6 => Some(2),
-            8 => Some(3),
-            _ => None,
-        }
-    }
-
     pub fn chamber_is_misoccupied(&self, chamber_id: usize) -> bool {
         let wanted_amphipod = Amphipod::from_home_chamber(chamber_id).unwrap();
 
@@ -113,6 +103,16 @@ impl GameState {
             (Some(_), None) => true,
             (Some(inh1), Some(inh2)) => inh1 != inh2 || inh1 != wanted_amphipod,
         }
+    }
+
+    pub fn is_solved(&self) -> bool {
+        self.chambers
+            .iter()
+            .enumerate()
+            .all(|(chamber_id, chamber)| match chamber.content {
+                (Some(el1), Some(el2)) => el1 == el2 && el1.home_chamber() == chamber_id,
+                _ => false,
+            })
     }
 }
 
@@ -204,7 +204,7 @@ pub struct GamePathElement {
 
 impl Ord for GamePathElement {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.cost.cmp(&other.cost)
+        other.cost.cmp(&self.cost)
     }
 }
 
@@ -229,13 +229,17 @@ pub fn get_follow_up_states(game_state: &GameState) -> impl Iterator<Item = (u32
 
     // Try to move amphipods out of chamber
     for (chamber_id, chamber) in game_state.chambers.iter().enumerate() {
+        if !game_state.chamber_is_misoccupied(chamber_id) {
+            continue;
+        }
+
         let (base_movements, amphi) = match &chamber.content {
             (Some(amphi), _) => (1, amphi),
             (None, Some(amphi)) => (2, amphi),
             (None, None) => continue,
         };
 
-        println!("Movable: {}, {}", base_movements, amphi.to_char());
+        //println!("Movable: {}, {}", base_movements, amphi.to_char());
 
         let mut state = game_state.clone();
         if base_movements == 1 {
@@ -332,23 +336,24 @@ pub fn get_follow_up_states(game_state: &GameState) -> impl Iterator<Item = (u32
     follow_ups.into_iter()
 }
 
-pub fn task1(input_state: &GameState) -> u64 {
-    // let (_, state) = get_follow_up_states(input_state).nth(15).unwrap();
-    // let (_, state) = get_follow_up_states(&state).nth(9).unwrap();
-
-    // for (cost, follow_up_state) in get_follow_up_states(&state) {
-    //     println!();
-    //     println!("Cost: {}", cost);
-    //     println!("{}", follow_up_state);
-    // }
-    // println!();
-
+pub fn find_cheapest_solution(
+    input_state: &GameState,
+) -> Option<(GamePathElement, HashMap<GameState, Option<GameState>>)> {
     let mut solved_game_states: HashMap<GameState, Option<GameState>> = HashMap::new();
     let mut cheapest_positions: BinaryHeap<GamePathElement> = BinaryHeap::new();
 
     cheapest_positions.push(GamePathElement::new(input_state.clone(), None, 0));
 
     while let Some(current_path) = cheapest_positions.pop() {
+        // println!("");
+        // println!("Total cost: {}", current_path.cost);
+        // println!("{}", current_path.state);
+        // println!("");
+
+        if current_path.state.is_solved() {
+            return Some((current_path, solved_game_states));
+        }
+
         match solved_game_states.entry(current_path.state.clone()) {
             std::collections::hash_map::Entry::Occupied(_) => continue,
             std::collections::hash_map::Entry::Vacant(e) => e.insert(current_path.parent),
@@ -364,10 +369,25 @@ pub fn task1(input_state: &GameState) -> u64 {
         }
     }
 
-    println!("{}", input_state);
-    0
+    None
+}
+
+pub fn task1(input_state: &GameState) -> u32 {
+    let (solution, _solution_map) = find_cheapest_solution(input_state).unwrap();
+    solution.cost
 }
 
 pub fn task2(_input_data: &GameState) -> u64 {
     0
+}
+
+crate::aoc_tests! {
+    task1: {
+        simple => 12521,
+        complex => 16300,
+    },
+    task2: {
+        simple => 0,
+        complex => 0,
+    }
 }
