@@ -392,7 +392,7 @@ pub fn task1(input_state: &GameState) -> u32 {
     solution.cost
 }
 
-pub fn task2(input_state: &GameState) -> u64 {
+pub fn task2(input_state: &GameState) -> u32 {
     let mut state = input_state.clone();
     state.chambers[0].content.insert(1, Some(Amphipod::D));
     state.chambers[0].content.insert(2, Some(Amphipod::D));
@@ -403,7 +403,9 @@ pub fn task2(input_state: &GameState) -> u64 {
     state.chambers[3].content.insert(1, Some(Amphipod::A));
     state.chambers[3].content.insert(2, Some(Amphipod::C));
     println!("{}", state);
-    0
+
+    let (solution, _solution_map) = find_cheapest_solution(&state).unwrap();
+    solution.cost
 }
 
 crate::aoc_tests! {
@@ -412,7 +414,7 @@ crate::aoc_tests! {
         complex => 16300,
     },
     task2: {
-        simple => 0,
-        complex => 0,
+        simple => 44169,
+        complex => 48676,
     }
 }
