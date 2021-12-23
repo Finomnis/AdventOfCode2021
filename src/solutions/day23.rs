@@ -5,7 +5,7 @@ use std::{
 
 use itertools::Itertools;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Amphipod {
     A,
     B,
@@ -23,12 +23,22 @@ impl Amphipod {
         }
     }
 
-    pub fn home_hallway(&self) -> usize {
+    pub fn home_chamber(&self) -> usize {
         match self {
-            Self::A => 2,
-            Self::B => 4,
-            Self::C => 6,
-            Self::D => 8,
+            Self::A => 0,
+            Self::B => 1,
+            Self::C => 2,
+            Self::D => 3,
+        }
+    }
+
+    pub fn from_home_chamber(hallway_id: usize) -> Option<Self> {
+        match hallway_id {
+            0 => Some(Self::A),
+            1 => Some(Self::B),
+            2 => Some(Self::C),
+            3 => Some(Self::D),
+            _ => None,
         }
     }
 
@@ -77,6 +87,33 @@ impl Chamber {
 pub struct GameState {
     hallway: [HallwayTile; 11],
     chambers: [Chamber; 4],
+}
+
+impl GameState {
+    pub fn chamber_id_to_position(id: usize) -> usize {
+        2 * id as usize + 2
+    }
+
+    pub fn chamber_position_to_id(offset: usize) -> Option<usize> {
+        match offset {
+            2 => Some(0),
+            4 => Some(1),
+            6 => Some(2),
+            8 => Some(3),
+            _ => None,
+        }
+    }
+
+    pub fn chamber_is_misoccupied(&self, chamber_id: usize) -> bool {
+        let wanted_amphipod = Amphipod::from_home_chamber(chamber_id).unwrap();
+
+        match self.chambers[chamber_id].content {
+            (None, None) => false,
+            (None, Some(inh)) => wanted_amphipod != inh,
+            (Some(_), None) => true,
+            (Some(inh1), Some(inh2)) => inh1 != inh2 || inh1 != wanted_amphipod,
+        }
+    }
 }
 
 impl Display for GameState {
@@ -188,10 +225,124 @@ impl GamePathElement {
 }
 
 pub fn get_follow_up_states(game_state: &GameState) -> impl Iterator<Item = (u32, GameState)> {
-    vec![].into_iter()
+    let mut follow_ups = vec![];
+
+    // Try to move amphipods out of chamber
+    for (chamber_id, chamber) in game_state.chambers.iter().enumerate() {
+        let (base_movements, amphi) = match &chamber.content {
+            (Some(amphi), _) => (1, amphi),
+            (None, Some(amphi)) => (2, amphi),
+            (None, None) => continue,
+        };
+
+        println!("Movable: {}, {}", base_movements, amphi.to_char());
+
+        let mut state = game_state.clone();
+        if base_movements == 1 {
+            state.chambers[chamber_id].content.0 = None;
+        } else {
+            state.chambers[chamber_id].content.1 = None;
+        }
+
+        let chamber_pos = GameState::chamber_id_to_position(chamber_id);
+
+        // Move out and to the left
+        for i in (0..chamber_pos).rev() {
+            if let HallwayTile::Occupiable(occupant) = &state.hallway[i] {
+                if occupant.is_some() {
+                    break;
+                }
+                let mut state = state.clone();
+                state.hallway[i] = HallwayTile::Occupiable(Some(*amphi));
+
+                follow_ups.push((
+                    ((chamber_pos - i) as u32 + base_movements) * amphi.move_cost(),
+                    state,
+                ));
+            }
+        }
+
+        // Move out and to the right
+        for i in (chamber_pos + 1)..state.hallway.len() {
+            if let HallwayTile::Occupiable(occupant) = &state.hallway[i] {
+                if occupant.is_some() {
+                    break;
+                }
+                let mut state = state.clone();
+                state.hallway[i] = HallwayTile::Occupiable(Some(*amphi));
+
+                follow_ups.push((
+                    ((i - chamber_pos) as u32 + base_movements) * amphi.move_cost(),
+                    state,
+                ));
+            }
+        }
+    }
+
+    // Try to move amphipods from hallway to target chambers
+    for (hallway_pos, hallway_tile) in game_state.hallway.iter().enumerate() {
+        if let HallwayTile::Occupiable(Some(amphi)) = hallway_tile {
+            let target_chamber = amphi.home_chamber();
+            if game_state.chamber_is_misoccupied(target_chamber) {
+                continue;
+            }
+            let target_chamber_pos = GameState::chamber_id_to_position(target_chamber);
+
+            let fields_in_between = if target_chamber_pos >= hallway_pos {
+                ((hallway_pos + 1)..target_chamber_pos).into_iter()
+            } else {
+                (target_chamber_pos..hallway_pos).into_iter()
+            };
+
+            let path_possible = fields_in_between.into_iter().all(|pos| {
+                matches!(
+                    game_state.hallway[pos],
+                    HallwayTile::Unoccupiable | HallwayTile::Occupiable(None)
+                )
+            });
+
+            if path_possible {
+                let horizontal_distance = if target_chamber_pos >= hallway_pos {
+                    target_chamber_pos - hallway_pos
+                } else {
+                    hallway_pos - target_chamber_pos
+                };
+
+                let mut state = game_state.clone();
+
+                let chamber_content = &mut state.chambers[target_chamber].content;
+                let vertical_distance = if chamber_content.1.is_some() {
+                    chamber_content.0 = Some(*amphi);
+                    1
+                } else {
+                    chamber_content.1 = Some(*amphi);
+                    2
+                };
+
+                state.hallway[hallway_pos] = HallwayTile::Occupiable(None);
+
+                follow_ups.push((
+                    (horizontal_distance + vertical_distance) as u32 * amphi.move_cost(),
+                    state,
+                ));
+            }
+        }
+    }
+
+    follow_ups.into_iter()
 }
 
 pub fn task1(input_state: &GameState) -> u64 {
+    // let (_, state) = get_follow_up_states(input_state).nth(15).unwrap();
+    // let (_, state) = get_follow_up_states(&state).nth(9).unwrap();
+
+    // for (cost, follow_up_state) in get_follow_up_states(&state) {
+    //     println!();
+    //     println!("Cost: {}", cost);
+    //     println!("{}", follow_up_state);
+    // }
+    // println!();
+
     let mut solved_game_states: HashMap<GameState, Option<GameState>> = HashMap::new();
     let mut cheapest_positions: BinaryHeap<GamePathElement> = BinaryHeap::new();
 
