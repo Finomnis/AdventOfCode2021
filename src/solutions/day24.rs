@@ -359,11 +359,11 @@ mod tests {
     }
 }
 
-crate::aoc_tests! {
-    task1: {
-        complex => 0,
-    },
-    task2: {
-        complex => 0,
-    }
-}
+// crate::aoc_tests! {
+//     task1: {
+//         complex => 0,
+//     },
+//     task2: {
+//         complex => 0,
+//     }
+// }
