@@ -29,6 +29,7 @@ solutions! {
     (day21, task1, task2)
     (day22, task1, task2)
     (day23, task1, task2)
+    (day24, task1, task2)
 }
 
 // DAILY: Add new reference solutions here
