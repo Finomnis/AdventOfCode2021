@@ -1,4 +1,6 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{collections::HashMap, fmt::Display};
+
+use itertools::Itertools;
 
 mod parser {
     use super::{ArgB, Instruction, Register};
@@ -194,36 +196,52 @@ pub fn parse_input(input_data: &str) -> Vec<Instruction> {
         .collect()
 }
 
-pub fn task1(monad: &[Instruction]) -> u32 {
-    let mut possible_alu_states = HashSet::from([Alu::new()]);
+pub fn task1(monad: &[Instruction]) -> i64 {
+    let mut possible_alu_states: HashMap<Alu, i64> = HashMap::from([(Alu::new(), 0)]);
 
     for (step, instruction) in monad.iter().enumerate() {
         possible_alu_states = possible_alu_states
             .into_iter()
-            .flat_map(|alu| {
+            .flat_map(|(alu, input_number)| {
                 match alu.execute(instruction) {
-                    AluResult::Done(alu) => vec![alu],
+                    AluResult::Done(alu) => vec![(alu, input_number)],
                     AluResult::NeedsInp(query) => (1..=9)
                         .into_iter()
-                        .map(|num| query.input(num))
+                        .map(|num| (query.input(num), input_number * 10 + num))
                         .collect::<Vec<_>>(),
                 }
                 .into_iter()
             })
-            .collect::<HashSet<_>>();
+            .into_grouping_map()
+            .max();
         println!(
             "Step {}: {} => {} possibilities",
-            step,
+            step + 1,
             instruction,
             possible_alu_states.len()
         );
         // for alu in &possible_alu_states {
         //     println!("   {:?}", alu.state());
         // }
-        println!();
     }
 
-    0
+    println!(
+        "{}",
+        possible_alu_states
+            .iter()
+            .filter(|(alu, _)| alu.z == 0)
+            .count()
+    );
+
+    let (alu, input) = possible_alu_states
+        .iter()
+        .filter(|(alu, _)| alu.z == 0)
+        .max_by_key(|(_, input)| *input)
+        .unwrap();
+
+    println!("{:?}, {}", alu, input);
+
+    *input
 }
 
 pub fn task2(_monad: &[Instruction]) -> u32 {
