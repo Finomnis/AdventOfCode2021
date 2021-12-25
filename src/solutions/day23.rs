@@ -14,7 +14,7 @@ pub enum Amphipod {
 }
 
 impl Amphipod {
-    pub fn move_cost(&self) -> u32 {
+    pub fn move_cost(self) -> u32 {
         match self {
             Self::A => 1,
             Self::B => 10,
@@ -23,7 +23,7 @@ impl Amphipod {
         }
     }
 
-    pub fn home_chamber(&self) -> usize {
+    pub fn home_chamber(self) -> usize {
         match self {
             Self::A => 0,
             Self::B => 1,
@@ -32,7 +32,7 @@ impl Amphipod {
         }
     }
 
-    pub fn to_char(&self) -> char {
+    pub fn to_char(self) -> char {
         match self {
             Self::A => 'A',
             Self::B => 'B',
@@ -293,9 +293,9 @@ pub fn get_follow_up_states(game_state: &GameState) -> impl Iterator<Item = (u32
             let target_chamber_pos = GameState::chamber_id_to_position(target_chamber);
 
             let fields_in_between = if target_chamber_pos >= hallway_pos {
-                ((hallway_pos + 1)..target_chamber_pos).into_iter()
+                (hallway_pos + 1)..target_chamber_pos
             } else {
-                (target_chamber_pos..hallway_pos).into_iter()
+                target_chamber_pos..hallway_pos
             };
 
             let path_possible = fields_in_between.into_iter().all(|pos| {

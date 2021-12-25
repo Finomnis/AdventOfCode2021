@@ -8,8 +8,8 @@ use std::{
 
 #[derive(Debug, Clone, Copy)]
 pub enum ReactorState {
-    ON,
-    OFF,
+    On,
+    Off,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -61,8 +61,8 @@ pub fn parse_input(input_data: &str) -> Vec<(Cuboid, ReactorState)> {
             let z = captures[6].parse().unwrap()..=captures[7].parse().unwrap();
 
             let state = match &captures[1] {
-                "on" => ReactorState::ON,
-                "off" => ReactorState::OFF,
+                "on" => ReactorState::On,
+                "off" => ReactorState::Off,
                 _ => panic!("Unknown command!"),
             };
 
@@ -86,8 +86,8 @@ pub fn task1(input_data: &[(Cuboid, ReactorState)]) -> u64 {
             reactor.slice_mut(ndarray::s![x_start..x_end, y_start..y_end, z_start..z_end]);
 
         slice.fill(match state {
-            ReactorState::ON => 1,
-            ReactorState::OFF => 0,
+            ReactorState::On => 1,
+            ReactorState::Off => 0,
         });
 
         //println!("{}: {}", _step, reactor.sum());
@@ -134,7 +134,7 @@ impl Reactor {
     pub fn perform_action(&mut self, cuboid: &Cuboid, action: &ReactorState) {
         self.remove_cuboid(cuboid);
 
-        if let ReactorState::ON = action {
+        if let ReactorState::On = action {
             *self.parts.entry(cuboid.clone()).or_insert(0) += 1;
         }
     }

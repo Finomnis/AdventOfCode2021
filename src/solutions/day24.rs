@@ -23,8 +23,8 @@ mod parser {
     }
 
     pub fn arg_b(input: &str) -> IResult<&str, ArgB> {
-        let reg = map(arg_a, |r| ArgB::Register(r));
-        let imm = map(i64, |n| ArgB::Immediate(n));
+        let reg = map(arg_a, ArgB::Register);
+        let imm = map(i64, ArgB::Immediate);
         alt((reg, imm))(input)
     }
 
@@ -297,13 +297,13 @@ mod tests {
     use super::*;
 
     fn alu_interactive(alu: Alu, instr: &mut impl Iterator<Item = Instruction>, num: i64) -> Alu {
-        match alu.execute(instr.next().unwrap()) {
+        match alu.execute(&instr.next().unwrap()) {
             AluResult::Done(_) => panic!("Should be inp instruction!"),
             AluResult::NeedsInp(query) => query.input(num),
         }
     }
     fn alu_noninteractive(alu: Alu, instr: &mut impl Iterator<Item = Instruction>) -> Alu {
-        match alu.execute(instr.next().unwrap()) {
+        match alu.execute(&instr.next().unwrap()) {
             AluResult::Done(alu) => alu,
             AluResult::NeedsInp(_) => panic!("Should not be an inp instruction!"),
         }
@@ -402,12 +402,3 @@ mod tests {
         assert_eq!(alu.x, -4);
     }
 }
-
-// crate::aoc_tests! {
-//     task1: {
-//         complex => 0,
-//     },
-//     task2: {
-//         complex => 0,
-//     }
-// }

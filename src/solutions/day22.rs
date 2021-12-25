@@ -7,8 +7,8 @@ use std::{
 
 #[derive(Debug, Clone, Copy)]
 pub enum ReactorState {
-    ON,
-    OFF,
+    On,
+    Off,
 }
 
 #[derive(Debug, Clone)]
@@ -42,8 +42,8 @@ impl Cuboid {
                 y: *y_start..=*y_end,
                 z: *z_start..=*z_end,
                 state: match self.state {
-                    ReactorState::ON => ReactorState::OFF,
-                    ReactorState::OFF => ReactorState::ON,
+                    ReactorState::On => ReactorState::Off,
+                    ReactorState::Off => ReactorState::On,
                 },
             })
         }
@@ -65,8 +65,8 @@ pub fn parse_input(input_data: &str) -> Vec<Cuboid> {
             let z = captures[6].parse().unwrap()..=captures[7].parse().unwrap();
 
             let state = match &captures[1] {
-                "on" => ReactorState::ON,
-                "off" => ReactorState::OFF,
+                "on" => ReactorState::On,
+                "off" => ReactorState::Off,
                 _ => panic!("Unknown command!"),
             };
 
@@ -90,8 +90,8 @@ pub fn task1(input_data: &[Cuboid]) -> u64 {
             reactor.slice_mut(ndarray::s![x_start..x_end, y_start..y_end, z_start..z_end]);
 
         slice.fill(match command.state {
-            ReactorState::ON => 1,
-            ReactorState::OFF => 0,
+            ReactorState::On => 1,
+            ReactorState::Off => 0,
         });
 
         //println!("{}: {}", _step, reactor.sum());
@@ -111,8 +111,8 @@ impl Reactor {
 
     pub fn count_cells(&self) -> u64 {
         self.parts.iter().fold(0, |sum, p| match p.state {
-            ReactorState::ON => sum + p.volume(),
-            ReactorState::OFF => sum - p.volume(),
+            ReactorState::On => sum + p.volume(),
+            ReactorState::Off => sum - p.volume(),
         })
     }
 
@@ -131,7 +131,7 @@ impl Reactor {
     pub fn perform_action(&mut self, action: &Cuboid) {
         self.remove_cuboid(action);
 
-        if let ReactorState::ON = action.state {
+        if let ReactorState::On = action.state {
             self.parts.push(action.clone());
         }
     }
