@@ -1,7 +1,7 @@
 use std::{error::Error, fmt};
 use std::{fmt::Debug, str::FromStr};
 
-use ndarray::{s, Array, Array2, ArrayView, Axis};
+use ndarray::Array2;
 
 #[derive(Debug)]
 pub struct ParseError(pub String);
@@ -23,117 +23,83 @@ fn get_2d_matrix_width_height(input_data: &str) -> (usize, usize) {
         })
 }
 
-#[allow(dead_code)]
-pub fn parse_as_2d_matrix_with_border<T: Clone + FromStr + Debug>(
+fn parse_as_2d_matrix_fn<T, F, G, E>(
     input_data: &str,
     border_size: usize,
-) -> Result<Array2<Option<T>>, ParseError> {
+    element: F,
+    border: G,
+) -> Result<Array2<T>, E>
+where
+    F: Fn(char) -> Result<T, E>,
+    G: Fn() -> T,
+{
     let input_data = input_data.trim();
 
     let (width, height) = get_2d_matrix_width_height(input_data);
 
-    let mut matrix: Array2<Option<T>> =
-        Array::from_elem((height + border_size * 2, width + border_size * 2), None);
-
-    let mut borderless = matrix.slice_mut(s![
-        border_size..height + border_size,
-        border_size..=width + border_size
-    ]);
-
-    input_data
+    let mut parsed_data = input_data
         .lines()
-        .zip(borderless.axis_iter_mut(Axis(0)))
-        .try_for_each(|(in_line, mut out_line)| {
-            in_line
-                .trim()
-                .chars()
-                .map(|c| c.to_string())
-                .zip(out_line.iter_mut())
-                .try_for_each(|(in_el, out_el)| {
-                    *out_el = Some(
-                        in_el
-                            .parse::<T>()
-                            .map_err(|_| ParseError(format!("Unable to parse '{}'!", in_el)))?,
-                    );
-                    Ok(())
+        .map(|line| {
+            line.chars()
+                .map(|ch| element(ch).map(|el| Some(el)))
+                .collect::<Result<Vec<_>, E>>()
+        })
+        .collect::<Result<Vec<_>, E>>()?;
+
+    let matrix = Array2::from_shape_fn(
+        (height + border_size * 2, width + border_size * 2),
+        |(y, x)| {
+            if y < border_size || x < border_size {
+                border()
+            } else if let Some(elem) = parsed_data
+                .get_mut(y - border_size)
+                .and_then(|row| row.get_mut(x - border_size))
+            {
+                elem.take().unwrap_or_else(|| {
+                    unreachable!("Every element of parsed_data should only be taken once!")
                 })
-        })?;
+            } else {
+                border()
+            }
+        },
+    );
 
     Ok(matrix)
 }
 
 #[allow(dead_code)]
-pub fn parse_as_2d_matrix_with_filled_border<T: Clone + FromStr + Debug>(
+pub fn parse_as_2d_matrix_with_border<T: FromStr>(
+    input_data: &str,
+    border_size: usize,
+) -> Result<Array2<Option<T>>, T::Err> {
+    parse_as_2d_matrix_fn(
+        input_data,
+        border_size,
+        |c| format!("{}", c).parse::<T>().map(|e| Some(e)),
+        || None,
+    )
+}
+
+#[allow(dead_code)]
+pub fn parse_as_2d_matrix_with_filled_border<T: Clone + FromStr>(
     input_data: &str,
     border_size: usize,
     border_value: T,
-) -> Result<Array2<T>, ParseError> {
-    let input_data = input_data.trim();
-
-    let (width, height) = get_2d_matrix_width_height(input_data);
-
-    let mut matrix: Array2<T> = Array::from_elem(
-        (height + border_size * 2, width + border_size * 2),
-        border_value,
-    );
-
-    let mut borderless = matrix.slice_mut(s![
-        border_size..height + border_size,
-        border_size..=width + border_size
-    ]);
-
-    input_data
-        .lines()
-        .zip(borderless.axis_iter_mut(Axis(0)))
-        .try_for_each(|(in_line, mut out_line)| {
-            in_line
-                .trim()
-                .chars()
-                .map(|c| c.to_string())
-                .zip(out_line.iter_mut())
-                .try_for_each(|(in_el, out_el)| {
-                    *out_el = in_el
-                        .parse::<T>()
-                        .map_err(|_| ParseError(format!("Unable to parse '{}'!", in_el)))?;
-                    Ok(())
-                })
-        })?;
-
-    Ok(matrix)
+) -> Result<Array2<T>, T::Err> {
+    parse_as_2d_matrix_fn(
+        input_data,
+        border_size,
+        |c| format!("{}", c).parse::<T>(),
+        || border_value.clone(),
+    )
 }
 
 #[allow(dead_code)]
-pub fn parse_as_2d_matrix<T: Clone + FromStr + Debug>(
-    input_data: &str,
-) -> Result<Array2<T>, ParseError> {
-    let input_data = input_data.trim();
-
-    let (width, _) = get_2d_matrix_width_height(input_data);
-
-    let parsed = input_data
-        .lines()
-        .map(|in_line| {
-            in_line
-                .trim()
-                .chars()
-                .map(|c| c.to_string())
-                .map(|in_el| {
-                    in_el
-                        .parse::<T>()
-                        .map_err(|_| ParseError(format!("Unable to parse '{}'!", in_el)))
-                })
-                .collect::<Result<Vec<_>, ParseError>>()
-        })
-        .collect::<Result<Vec<_>, ParseError>>()?;
-
-    let mut result = Array::from_shape_vec((0, width), vec![])
-        .map_err(|_| ParseError("Unable to construct matrix!".into()))?;
-
-    for line in parsed {
-        result
-            .push_row(ArrayView::from(&line))
-            .map_err(|e| ParseError(format!("Can't add row: {}", e)))?;
-    }
-
-    Ok(result)
+pub fn parse_as_2d_matrix<T: FromStr>(input_data: &str) -> Result<Array2<T>, T::Err> {
+    parse_as_2d_matrix_fn(
+        input_data,
+        0,
+        |c| format!("{}", c).parse::<T>(),
+        || unreachable!(),
+    )
 }
